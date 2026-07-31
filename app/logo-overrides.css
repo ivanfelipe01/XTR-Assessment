@@ -44,6 +44,32 @@
   border-radius: 50%;
 }
 
+.radar-legend span:nth-child(1) {
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.radar-legend span:nth-child(2) {
+  top: 35%;
+  right: 7%;
+}
+
+.radar-legend span:nth-child(3) {
+  right: 15%;
+  bottom: 7%;
+}
+
+.radar-legend span:nth-child(4) {
+  left: 15%;
+  bottom: 7%;
+}
+
+.radar-legend span:nth-child(5) {
+  top: 35%;
+  left: 7%;
+}
+
 .deck-logo {
   position: absolute;
   right: 10%;
