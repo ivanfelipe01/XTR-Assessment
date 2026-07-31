@@ -23,6 +23,14 @@
   filter: drop-shadow(0 0 8px rgba(29, 219, 224, 0.18));
 }
 
+.score-orbit {
+  background: conic-gradient(
+    var(--score-color, var(--cyan)) 0 var(--score, 0%),
+    #23293a var(--score, 0%) 100%
+  );
+  transition: background 300ms ease;
+}
+
 .deck-logo {
   position: absolute;
   right: 10%;
