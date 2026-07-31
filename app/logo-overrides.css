@@ -120,7 +120,7 @@
 
 .software-card {
   display: grid;
-  grid-template-columns: 38px minmax(230px, 1.5fr) minmax(150px, .8fr) auto;
+  grid-template-columns: 38px minmax(190px, 1.25fr) minmax(150px, .8fr) minmax(150px, .8fr) auto;
   gap: 14px;
   align-items: end;
   padding: 17px;
@@ -250,7 +250,7 @@
   .overview-page .content-grid > .panel { height: auto; min-height: 330px; }
   .pillar-tabs.six-tabs { display: flex; overflow-x: auto; }
   .pillar-tabs.six-tabs button { min-width: 140px; }
-  .software-card { grid-template-columns: 28px 1fr 1fr; }
+  .software-card { grid-template-columns: 28px repeat(3, 1fr); }
   .software-actions { grid-column: 2 / -1; }
   .vulnerability-row { grid-template-columns: 160px 1fr 90px; }
   .vulnerability-row > small { grid-column: 2 / -1; }
