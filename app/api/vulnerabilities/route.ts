@@ -22,6 +22,32 @@ function mapRisk(description: string) {
   return "Comprometimento potencial da confidencialidade, integridade ou disponibilidade dos backups";
 }
 
+async function translateToPortuguese(description: string) {
+  try {
+    const translateUrl = new URL("https://translate.googleapis.com/translate_a/single");
+    translateUrl.searchParams.set("client", "gtx");
+    translateUrl.searchParams.set("sl", "en");
+    translateUrl.searchParams.set("tl", "pt-BR");
+    translateUrl.searchParams.set("dt", "t");
+    translateUrl.searchParams.set("q", description);
+    const response = await fetch(translateUrl, { signal: AbortSignal.timeout(8000) });
+    if (!response.ok) return description;
+    const data = await response.json() as Array<Array<Array<string>>>;
+    const translated = data?.[0]?.map((part) => part?.[0] ?? "").join("").trim();
+    return translated || description;
+  } catch {
+    return description;
+  }
+}
+
+async function translateInBatches<T>(items: T[], translate: (item: T) => Promise<T>) {
+  const translated: T[] = [];
+  for (let index = 0; index < items.length; index += 8) {
+    translated.push(...await Promise.all(items.slice(index, index + 8).map(translate)));
+  }
+  return translated;
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const product = coreProduct(url.searchParams.get("product") ?? "");
@@ -62,11 +88,17 @@ export async function GET(request: Request) {
     const cveResponse = await fetch(cveUrl, { headers: { "user-agent": "XTR-Assessment/1.0" } });
     if (!cveResponse.ok) throw new Error("A NVD não respondeu à consulta de vulnerabilidades.");
     const cveData = await cveResponse.json() as { vulnerabilities?: Array<{ cve: NvdCve }> };
-    const vulnerabilities = (cveData.vulnerabilities ?? []).slice(0, 50).map(({ cve }) => {
+    const vulnerabilities = await translateInBatches((cveData.vulnerabilities ?? []).slice(0, 50).map(({ cve }) => {
       const metric = cve.metrics?.cvssMetricV31?.[0]?.cvssData ?? cve.metrics?.cvssMetricV30?.[0]?.cvssData ?? cve.metrics?.cvssMetricV2?.[0]?.cvssData;
-      const description = cve.descriptions?.find((item) => item.lang === "en")?.value ?? "Descrição indisponível.";
-      return { id: cve.id, severity: metric?.baseSeverity ?? "NÃO CLASSIFICADA", score: metric?.baseScore ?? null, description, risk: mapRisk(description), url: `https://nvd.nist.gov/vuln/detail/${cve.id}`, matchStatus };
-    });
+      const portugueseDescription = cve.descriptions?.find((item) => /^(pt|pt-BR)$/i.test(item.lang))?.value;
+      const originalDescription = cve.descriptions?.find((item) => item.lang === "en")?.value ?? "Descrição indisponível.";
+      return { id: cve.id, severity: metric?.baseSeverity ?? "NÃO CLASSIFICADA", score: metric?.baseScore ?? null, description: portugueseDescription ?? originalDescription, originalDescription, needsTranslation: !portugueseDescription, risk: mapRisk(originalDescription), url: `https://nvd.nist.gov/vuln/detail/${cve.id}`, matchStatus };
+    }), async (vulnerability) => ({
+      ...vulnerability,
+      description: vulnerability.needsTranslation ? await translateToPortuguese(vulnerability.description) : vulnerability.description,
+      originalDescription: undefined,
+      needsTranslation: undefined,
+    }));
     return Response.json({ product, version, identifiedProduct, cpe: exact?.cpeName ?? null, vulnerabilities, source: "https://nvd.nist.gov/developers/vulnerabilities", checkedAt: new Date().toISOString() });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Falha na consulta à NVD." }, { status: 502 });
