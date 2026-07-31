@@ -113,13 +113,13 @@ export default function Home() {
           <button className={view === "findings" ? "active" : ""} onClick={() => setView("findings")}><span>△</span> Achados <em>{findings.length}</em></button>
           <button className={view === "report" ? "active" : ""} onClick={() => setView("report")}><span>▤</span> Relatório</button>
         </nav>
-        <div className="sidebar-foot"><div className="guardian">DATA<br />GUARDIANS</div><small>powered by</small><b>XTREME IT</b></div>
+        <div className="sidebar-foot xtreme-credit"><small>Powered by</small><img src="/xtreme-it-logo.png" alt="Xtreme IT" /></div>
       </aside>
 
       <section className="workspace">
         <header className="topbar">
           <div className="topbar-brand"><img src="/xtr-assessment-logo.png" alt="" /><p>XTR ASSESSMENT <span>/</span> {view === "overview" ? "VISÃO GERAL" : view.toUpperCase()}</p></div>
-          <div className="top-actions"><span className="save-state"><i />{saved ? "Salvo agora" : "Salvando..."}</span><button className="ghost">Pré-visualizar</button><button className="primary" onClick={exportDeck} disabled={exporting}>{exporting ? "Gerando..." : "Exportar PowerPoint"}</button></div>
+          <div className="top-actions"><span className="save-state"><i />{saved ? "Salvo agora" : "Salvando..."}</span><button className="primary" onClick={exportDeck} disabled={exporting}>{exporting ? "Gerando..." : "Exportar PowerPoint"}</button></div>
         </header>
 
         {view === "overview" && (
