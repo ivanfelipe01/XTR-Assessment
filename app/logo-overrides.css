@@ -1,0 +1,41 @@
+.brand {
+  justify-content: center;
+  padding-bottom: 24px;
+}
+
+.brand-logo {
+  display: block;
+  width: 118px;
+  height: auto;
+  filter: drop-shadow(0 0 14px rgba(29, 219, 224, 0.2));
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-brand > img {
+  width: 31px;
+  height: 31px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(29, 219, 224, 0.18));
+}
+
+.deck-logo {
+  position: absolute;
+  right: 10%;
+  width: 175px;
+  height: 175px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 22px rgba(29, 219, 224, 0.22));
+}
+
+@media (max-width: 1050px) {
+  .brand-logo { width: 48px; }
+}
+
+@media (max-width: 760px) {
+  .deck-logo { width: 105px; height: 105px; right: 6%; }
+}

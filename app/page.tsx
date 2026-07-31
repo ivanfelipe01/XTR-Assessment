@@ -106,7 +106,7 @@ export default function Home() {
   return (
     <main className="app-shell">
       <aside className="sidebar">
-        <div className="brand"><span className="brand-mark">XTR</span><div><b>ASSESSMENT</b><small>DATA RESILIENCE</small></div></div>
+        <div className="brand"><img className="brand-logo" src="/xtr-assessment-logo.png" alt="XTR Assessment" /></div>
         <nav aria-label="Navegação principal">
           <button className={view === "overview" ? "active" : ""} onClick={() => setView("overview")}><span>⌁</span> Visão geral</button>
           <button className={view === "questionnaire" ? "active" : ""} onClick={() => setView("questionnaire")}><span>◫</span> Questionário</button>
@@ -118,7 +118,7 @@ export default function Home() {
 
       <section className="workspace">
         <header className="topbar">
-          <div><p>XTR ASSESSMENT <span>/</span> {view === "overview" ? "VISÃO GERAL" : view.toUpperCase()}</p></div>
+          <div className="topbar-brand"><img src="/xtr-assessment-logo.png" alt="" /><p>XTR ASSESSMENT <span>/</span> {view === "overview" ? "VISÃO GERAL" : view.toUpperCase()}</p></div>
           <div className="top-actions"><span className="save-state"><i />{saved ? "Salvo agora" : "Salvando..."}</span><button className="ghost">Pré-visualizar</button><button className="primary" onClick={exportDeck} disabled={exporting}>{exporting ? "Gerando..." : "Exportar PowerPoint"}</button></div>
         </header>
 
@@ -150,7 +150,7 @@ export default function Home() {
         )}
 
         {view === "report" && (
-          <div className="page report-page"><div className="page-title"><div><span className="eyebrow">RELATÓRIO EXECUTIVO</span><h1>Prévia da apresentação</h1><p>Conteúdo estruturado para o padrão institucional XTR Assessment.</p></div><button className="primary large" onClick={exportDeck}>{exporting ? "Gerando apresentação..." : "Gerar PowerPoint editável"}</button></div><div className="deck-preview"><div className="deck-slide"><div className="deck-brand">XTREME IT</div><div><span>ASSESSMENT DE MATURIDADE</span><h2>EM <b>RESILIÊNCIA DE DADOS</b></h2><p>{client}</p></div><div className="deck-orb">XTR<small>ASSESSMENT</small></div></div><div className="deck-outline"><h3>Estrutura prevista</h3>{["Capa e objetivo", "Diagnóstico atual", "Maturidade por pilar", "Exposições ISO/IEC 27001", "Exposições NIST CSF", "Exposições LGPD", "Conclusões e próximos passos"].map((item, i) => <div key={item}><span>{String(i + 1).padStart(2, "0")}</span><b>{item}</b></div>)}</div></div></div>
+          <div className="page report-page"><div className="page-title"><div><span className="eyebrow">RELATÓRIO EXECUTIVO</span><h1>Prévia da apresentação</h1><p>Conteúdo estruturado para o padrão institucional XTR Assessment.</p></div><button className="primary large" onClick={exportDeck}>{exporting ? "Gerando apresentação..." : "Gerar PowerPoint editável"}</button></div><div className="deck-preview"><div className="deck-slide"><div className="deck-brand">XTREME IT</div><div><span>ASSESSMENT DE MATURIDADE</span><h2>EM <b>RESILIÊNCIA DE DADOS</b></h2><p>{client}</p></div><img className="deck-logo" src="/xtr-assessment-logo.png" alt="XTR Assessment" /></div><div className="deck-outline"><h3>Estrutura prevista</h3>{["Capa e objetivo", "Diagnóstico atual", "Maturidade por pilar", "Exposições ISO/IEC 27001", "Exposições NIST CSF", "Exposições LGPD", "Conclusões e próximos passos"].map((item, i) => <div key={item}><span>{String(i + 1).padStart(2, "0")}</span><b>{item}</b></div>)}</div></div></div>
         )}
       </section>
     </main>
