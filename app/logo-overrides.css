@@ -85,6 +85,79 @@
   margin-top: auto;
 }
 
+.pillar-tabs.six-tabs {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.pillar-tabs.six-tabs button {
+  min-width: 0;
+}
+
+.software-tab span {
+  color: var(--cyan) !important;
+}
+
+.software-inventory {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #090c14;
+}
+
+.software-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px;
+  background: linear-gradient(90deg, #141827, #0a0d15);
+  border-bottom: 1px solid var(--line);
+}
+
+.software-intro h2 { margin: 6px 0; font-size: 18px; }
+.software-intro p { margin: 0; color: var(--muted); font-size: 10px; }
+.software-list { padding: 18px; display: grid; gap: 12px; }
+
+.software-card {
+  display: grid;
+  grid-template-columns: 38px minmax(230px, 1.5fr) minmax(150px, .8fr) auto;
+  gap: 14px;
+  align-items: end;
+  padding: 17px;
+  border: 1px solid #20283a;
+  border-radius: 7px;
+  background: #0d111b;
+}
+
+.software-index { color: #566178; font-size: 10px; align-self: center; }
+.software-card label { display: grid; gap: 7px; color: #737f94; font-size: 7px; letter-spacing: 1.2px; }
+.software-card input { min-width: 0; border: 1px solid #2a3348; border-radius: 5px; background: #090c14; color: #eef2f8; padding: 11px 12px; font-size: 11px; }
+.software-actions { display: flex; gap: 7px; align-items: center; }
+.remove-button { border: 1px solid #3b2730; background: #1c1016; color: #ff7b8f; border-radius: 5px; padding: 10px; font-size: 9px; cursor: pointer; }
+.software-error,.software-status { grid-column: 2 / -1; margin: 0; font-size: 8px; }
+.software-error { color: #ff7187; }
+.software-status { color: #758096; }
+.software-status i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--success); margin-right: 6px; }
+.nvd-note { display: flex; gap: 12px; padding: 14px 24px; border-top: 1px solid var(--line); color: #69748a; font-size: 8px; }
+.nvd-note b { color: #98a3b7; }
+
+.vulnerability-findings {
+  margin-bottom: 18px;
+  padding: 20px;
+  border: 1px solid #4b2230;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #140b11, #090c14);
+}
+
+.vulnerability-findings .section-head { margin-bottom: 12px; }
+.vulnerability-findings .section-head em { color: #ff7187; font-size: 9px; font-style: normal; }
+.vulnerability-row { display: grid; grid-template-columns: 190px 1fr 105px 150px; gap: 14px; align-items: center; padding: 14px 0; border-top: 1px solid #2a1d27; color: inherit; text-decoration: none; }
+.vulnerability-row > div { display: grid; gap: 4px; }
+.vulnerability-row strong { color: var(--cyan); font-size: 11px; }
+.vulnerability-row span,.vulnerability-row small { color: #748096; font-size: 8px; }
+.vulnerability-row p { margin: 0; color: #a8b0c0; font-size: 9px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.vulnerability-row > em { padding: 5px 8px; border-radius: 12px; text-align: center; font-size: 7px; font-style: normal; }
+
 .radar {
   width: 210px;
   height: 210px;
@@ -172,10 +245,22 @@
   .overview-page .score-card,
   .overview-page .radar-card,
   .overview-page .content-grid > .panel { height: auto; min-height: 330px; }
+  .pillar-tabs.six-tabs { display: flex; overflow-x: auto; }
+  .pillar-tabs.six-tabs button { min-width: 140px; }
+  .software-card { grid-template-columns: 28px 1fr 1fr; }
+  .software-actions { grid-column: 2 / -1; }
+  .vulnerability-row { grid-template-columns: 160px 1fr 90px; }
+  .vulnerability-row > small { grid-column: 2 / -1; }
 }
 
 @media (max-width: 760px) {
   .deck-logo { width: 105px; height: 105px; right: 6%; }
   .radar { width: 190px; height: 190px; }
   .radar-legend { width: 270px; height: 230px; }
+  .software-intro { align-items: flex-start; flex-direction: column; }
+  .software-card { grid-template-columns: 24px 1fr; align-items: stretch; }
+  .software-card label,.software-actions { grid-column: 2; }
+  .software-actions { flex-wrap: wrap; }
+  .vulnerability-row { grid-template-columns: 1fr 82px; }
+  .vulnerability-row p,.vulnerability-row > small { grid-column: 1 / -1; }
 }

@@ -5,6 +5,8 @@ import { pillars, maturityForScore, type Pillar } from "./assessment-data";
 
 type View = "overview" | "questionnaire" | "findings" | "report";
 type AnswerState = Record<string, { score: number; note: string }>;
+type Vulnerability = { id: string; severity: string; score: number | null; description: string; url: string; matchStatus: string; serverId: string; server: string; version: string };
+type SoftwareEntry = { id: string; server: string; version: string; checking: boolean; checkedAt?: string; error?: string };
 
 const demoAnswers: AnswerState = Object.fromEntries(
   pillars.flatMap((pillar) =>
@@ -50,6 +52,8 @@ export default function Home() {
   const [answers, setAnswers] = useState<AnswerState>(demoAnswers);
   const [client, setClient] = useState("Cliente demonstração");
   const [activePillar, setActivePillar] = useState(0);
+  const [software, setSoftware] = useState<SoftwareEntry[]>([{ id: crypto.randomUUID(), server: "", version: "", checking: false }]);
+  const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
   const [saved, setSaved] = useState(true);
   const [exporting, setExporting] = useState(false);
 
@@ -63,6 +67,7 @@ export default function Home() {
     () => pillars.flatMap((pillar) => pillar.questions.filter((q) => (answers[q.id]?.score ?? 0) < q.max).map((q) => ({ pillar, question: q, score: answers[q.id]?.score ?? 0 }))),
     [answers],
   );
+  const findingCount = findings.length + vulnerabilities.length;
 
   useEffect(() => {
     if (saved) return;
@@ -71,17 +76,52 @@ export default function Home() {
         await fetch("/api/assessments", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ id: "current", client, answers, score: totalScore, maturity: maturity.label }),
+          body: JSON.stringify({ id: "current", client, answers: { answers, software, vulnerabilities }, score: totalScore, maturity: maturity.label }),
         });
         setSaved(true);
       } catch { /* stays as a draft in the current session */ }
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [answers, client, maturity.label, saved, totalScore]);
+  }, [answers, client, maturity.label, saved, software, totalScore, vulnerabilities]);
 
   const updateAnswer = (id: string, patch: Partial<AnswerState[string]>) => {
     setAnswers((current) => ({ ...current, [id]: { ...current[id], ...patch } }));
     setSaved(false);
+  };
+
+  const updateSoftware = (id: string, patch: Partial<SoftwareEntry>) => {
+    setSoftware((current) => current.map((item) => item.id === id ? { ...item, ...patch, error: undefined } : item));
+    setSaved(false);
+  };
+
+  const addSoftware = () => {
+    setSoftware((current) => [...current, { id: crypto.randomUUID(), server: "", version: "", checking: false }]);
+    setSaved(false);
+  };
+
+  const removeSoftware = (id: string) => {
+    setSoftware((current) => current.filter((item) => item.id !== id));
+    setVulnerabilities((current) => current.filter((item) => item.serverId !== id));
+    setSaved(false);
+  };
+
+  const checkVulnerabilities = async (entry: SoftwareEntry) => {
+    if (!entry.server.trim() || !entry.version.trim()) {
+      updateSoftware(entry.id, { error: "Informe o Backup Server e a versão." });
+      return;
+    }
+    updateSoftware(entry.id, { checking: true });
+    try {
+      const params = new URLSearchParams({ product: entry.server, version: entry.version });
+      const response = await fetch(`/api/vulnerabilities?${params}`);
+      const data = await response.json() as { vulnerabilities?: Omit<Vulnerability, "serverId" | "server" | "version">[]; error?: string };
+      if (!response.ok) throw new Error(data.error || "Consulta indisponível");
+      const matches = (data.vulnerabilities ?? []).map((item) => ({ ...item, serverId: entry.id, server: entry.server, version: entry.version }));
+      setVulnerabilities((current) => [...current.filter((item) => item.serverId !== entry.id), ...matches]);
+      updateSoftware(entry.id, { checking: false, checkedAt: new Date().toLocaleString("pt-BR") });
+    } catch (error) {
+      updateSoftware(entry.id, { checking: false, error: error instanceof Error ? error.message : "Falha na consulta" });
+    }
   };
 
   const exportDeck = async () => {
@@ -110,7 +150,7 @@ export default function Home() {
         <nav aria-label="Navegação principal">
           <button className={view === "overview" ? "active" : ""} onClick={() => setView("overview")}><span>⌁</span> Visão geral</button>
           <button className={view === "questionnaire" ? "active" : ""} onClick={() => setView("questionnaire")}><span>◫</span> Questionário</button>
-          <button className={view === "findings" ? "active" : ""} onClick={() => setView("findings")}><span>△</span> Achados <em>{findings.length}</em></button>
+          <button className={view === "findings" ? "active" : ""} onClick={() => setView("findings")}><span>△</span> Achados <em>{findingCount}</em></button>
           <button className={view === "report" ? "active" : ""} onClick={() => setView("report")}><span>▤</span> Relatório</button>
         </nav>
         <div className="sidebar-foot xtreme-credit"><small>Powered by</small><img src="/xtreme-it-logo.png" alt="Xtreme IT" /></div>
@@ -140,13 +180,13 @@ export default function Home() {
         {view === "questionnaire" && (
           <div className="page questionnaire-page">
             <div className="page-title"><div><span className="eyebrow">QUESTIONÁRIO BASE</span><h1>Avaliação por pilar</h1><p>Registre a pontuação e as evidências observadas no ambiente.</p></div><div className="progress-ring">{totalScore}<small>/100</small></div></div>
-            <div className="pillar-tabs" role="tablist">{pillars.map((pillar, index) => <button key={pillar.id} className={activePillar === index ? "active" : ""} onClick={() => setActivePillar(index)} style={{ "--pillar": pillar.color } as React.CSSProperties}><span>{pillar.icon}</span><div><small>PILAR {index + 1}</small><b>{pillar.name}</b></div><em>{pillarScores[index]}/20</em></button>)}</div>
-            <QuestionList pillar={pillars[activePillar]} answers={answers} updateAnswer={updateAnswer} />
+            <div className="pillar-tabs six-tabs" role="tablist">{pillars.map((pillar, index) => <button key={pillar.id} className={activePillar === index ? "active" : ""} onClick={() => setActivePillar(index)} style={{ "--pillar": pillar.color } as React.CSSProperties}><span>{pillar.icon}</span><div><small>PILAR {index + 1}</small><b>{pillar.name}</b></div><em>{pillarScores[index]}/20</em></button>)}<button className={activePillar === 5 ? "active software-tab" : "software-tab"} onClick={() => setActivePillar(5)} style={{ "--pillar": "#1ddbe0" } as React.CSSProperties}><span>▣</span><div><small>INVENTÁRIO</small><b>Versões de Software</b></div><em>{software.length}</em></button></div>
+            {activePillar < 5 ? <QuestionList pillar={pillars[activePillar]} answers={answers} updateAnswer={updateAnswer} /> : <SoftwareVersions entries={software} vulnerabilities={vulnerabilities} update={updateSoftware} add={addSoftware} remove={removeSoftware} check={checkVulnerabilities} />}
           </div>
         )}
 
         {view === "findings" && (
-          <div className="page"><div className="page-title"><div><span className="eyebrow">EXPOSIÇÕES E RISCOS</span><h1>Achados priorizados</h1><p>Cruzamento técnico com ISO/IEC 27001, NIST CSF 2.0 e LGPD.</p></div><div className="stat-pill"><strong>{findings.length}</strong><span>achados<br />ativos</span></div></div><div className="findings-table"><div className="table-head"><span>ACHADO</span><span>CRITICIDADE</span><span>ISO 27001</span><span>NIST</span><span>LGPD</span></div>{findings.map(({ pillar, question, score }, index) => <div className="table-row" key={question.id}><span><i>{String(index + 1).padStart(2, "0")}</i><div><b>{question.title}</b><small>{pillar.name} · {score}/{question.max} pontos</small></div></span><em className={score === 0 ? "critical" : "medium"}>{score === 0 ? "CRÍTICA" : "MÉDIA"}</em><code>{question.iso}</code><code>{question.nist}</code><code>{question.lgpd}</code></div>)}</div></div>
+          <div className="page"><div className="page-title"><div><span className="eyebrow">EXPOSIÇÕES E RISCOS</span><h1>Achados priorizados</h1><p>Cruzamento técnico com ISO/IEC 27001, NIST CSF 2.0, LGPD e NVD.</p></div><div className="stat-pill"><strong>{findingCount}</strong><span>achados<br />ativos</span></div></div>{vulnerabilities.length > 0 && <section className="vulnerability-findings"><div className="section-head"><div><span>VULNERABILIDADES DE SOFTWARE</span><h3>Exposições identificadas na NVD</h3></div><em>{vulnerabilities.length} CVEs</em></div>{vulnerabilities.map((vuln) => <a href={vuln.url} target="_blank" rel="noreferrer" className="vulnerability-row" key={`${vuln.serverId}-${vuln.id}`}><div><strong>{vuln.id}</strong><span>{vuln.server} · {vuln.version}</span></div><p>{vuln.description}</p><em className={vuln.severity === "CRITICAL" || vuln.severity === "HIGH" ? "critical" : "medium"}>{vuln.severity}{vuln.score ? ` · ${vuln.score}` : ""}</em><small>{vuln.matchStatus}</small></a>)}</section>}<div className="findings-table"><div className="table-head"><span>ACHADO</span><span>CRITICIDADE</span><span>ISO 27001</span><span>NIST</span><span>LGPD</span></div>{findings.map(({ pillar, question, score }, index) => <div className="table-row" key={question.id}><span><i>{String(index + 1).padStart(2, "0")}</i><div><b>{question.title}</b><small>{pillar.name} · {score}/{question.max} pontos</small></div></span><em className={score === 0 ? "critical" : "medium"}>{score === 0 ? "CRÍTICA" : "MÉDIA"}</em><code>{question.iso}</code><code>{question.nist}</code><code>{question.lgpd}</code></div>)}</div></div>
         )}
 
         {view === "report" && (
@@ -159,4 +199,8 @@ export default function Home() {
 
 function QuestionList({ pillar, answers, updateAnswer }: { pillar: Pillar; answers: AnswerState; updateAnswer: (id: string, patch: Partial<AnswerState[string]>) => void }) {
   return <section className="question-list"><div className="question-intro"><span style={{ color: pillar.color }}>{pillar.icon}</span><div><small>{pillar.name.toUpperCase()}</small><h2>{pillar.description}</h2></div><strong>{pillar.questions.reduce((sum, q) => sum + answers[q.id].score, 0)}<small>/20</small></strong></div>{pillar.questions.map((q, index) => <article className="question-card" key={q.id}><div className="question-number">{String(index + 1).padStart(2, "0")}</div><div className="question-main"><h3>{q.title}</h3><p>{q.risk}</p><div className="framework-tags"><span>{q.iso}</span><span>{q.nist}</span><span>{q.lgpd}</span></div><textarea aria-label={`Observação para ${q.title}`} placeholder="Descreva a evidência ou observação técnica..." value={answers[q.id].note} onChange={(e) => updateAnswer(q.id, { note: e.target.value })} /></div><div className="score-selector"><label>PONTUAÇÃO</label><strong style={{ color: answers[q.id].score === q.max ? "var(--success)" : answers[q.id].score === 0 ? "var(--danger)" : "var(--warning)" }}>{answers[q.id].score}<small>/{q.max}</small></strong><input type="range" min="0" max={q.max} value={answers[q.id].score} onChange={(e) => updateAnswer(q.id, { score: Number(e.target.value) })} style={{ "--value": `${(answers[q.id].score / q.max) * 100}%` } as React.CSSProperties} /><div><span>Não atende</span><span>Atende</span></div></div></article>)}</section>;
+}
+
+function SoftwareVersions({ entries, vulnerabilities, update, add, remove, check }: { entries: SoftwareEntry[]; vulnerabilities: Vulnerability[]; update: (id: string, patch: Partial<SoftwareEntry>) => void; add: () => void; remove: (id: string) => void; check: (entry: SoftwareEntry) => void }) {
+  return <section className="software-inventory"><div className="software-intro"><div><span className="eyebrow">INVENTÁRIO DE BACKUP</span><h2>Versões de Software</h2><p>Cadastre cada Backup Server e consulte vulnerabilidades publicadas na NVD.</p></div><button className="primary" onClick={add}>＋ Adicionar Backup Server</button></div><div className="software-list">{entries.map((entry, index) => { const count = vulnerabilities.filter((item) => item.serverId === entry.id).length; return <article className="software-card" key={entry.id}><div className="software-index">{String(index + 1).padStart(2, "0")}</div><label>BACKUP SERVER<input value={entry.server} onChange={(e) => update(entry.id, { server: e.target.value })} placeholder="Ex.: Veeam Server de Localidade XPTO" /></label><label>VERSÃO<input value={entry.version} onChange={(e) => update(entry.id, { version: e.target.value })} placeholder="Ex.: 13.3.x" /></label><div className="software-actions"><button className="primary" onClick={() => check(entry)} disabled={entry.checking}>{entry.checking ? "Consultando..." : "Verificar vulnerabilidades"}</button>{entries.length > 1 && <button className="remove-button" onClick={() => remove(entry.id)}>Remover</button>}</div>{entry.error && <p className="software-error">{entry.error}</p>}{entry.checkedAt && !entry.error && <p className="software-status"><i /> Consulta NVD: {entry.checkedAt} · {count} vulnerabilidade(s)</p>}</article>; })}</div><div className="nvd-note"><b>Fonte: National Vulnerability Database (NVD/NIST).</b><span>Uma correspondência por versão não substitui a validação do fabricante, da build instalada e das condições de exploração.</span></div></section>;
 }
