@@ -31,14 +31,28 @@ export async function GET(request: Request) {
   try {
     const cpeUrl = new URL("https://services.nvd.nist.gov/rest/json/cpes/2.0");
     cpeUrl.searchParams.set("keywordSearch", product);
-    cpeUrl.searchParams.set("resultsPerPage", "100");
+    // Fabricantes amplos, como “Veeam”, podem ter centenas de CPEs. Consulte o
+    // catálogo completo para que builds recentes não fiquem fora da primeira página.
+    cpeUrl.searchParams.set("resultsPerPage", "2000");
     const cpeResponse = await fetch(cpeUrl, { headers: { "user-agent": "XTR-Assessment/1.0" } });
     if (!cpeResponse.ok) throw new Error("A NVD não respondeu à pesquisa de produtos.");
-    const cpeData = await cpeResponse.json() as { products?: Array<{ cpe?: { cpeName?: string; titles?: Array<{ title: string }> } }> };
+    const cpeData = await cpeResponse.json() as { products?: Array<{ cpe?: { cpeName?: string; titles?: Array<{ title: string; lang?: string }> } }> };
     const candidates = (cpeData.products ?? []).map((item) => item.cpe).filter(Boolean);
-    const exact = candidates.find((item) => { const parts = item?.cpeName?.split(":") ?? []; return versionMatches(parts[5] ?? "", version); });
+    const versionCandidates = candidates.filter((item) => { const parts = item?.cpeName?.split(":") ?? []; return versionMatches(parts[5] ?? "", version); });
+    const scored = versionCandidates.map((item) => {
+      const cpeName = item?.cpeName ?? "";
+      const name = cpeName.toLowerCase();
+      let score = 0;
+      if (name.includes("backup_\\&_replication")) score += 100;
+      if (name.includes("backup")) score += 30;
+      if (name.includes("server")) score += 10;
+      if (product.toLowerCase() !== "veeam" && name.includes(product.toLowerCase().replace(/\s+/g, "_"))) score += 50;
+      return { item, score };
+    }).sort((a, b) => b.score - a.score);
+    const exact = scored[0]?.item;
+    const identifiedProduct = exact?.titles?.find((title) => title.lang === "en")?.title ?? exact?.titles?.[0]?.title ?? exact?.cpeName?.split(":")[4]?.replace(/_/g, " ") ?? product;
 
-    if (!exact?.cpeName) return Response.json({ product, version, cpe: null, vulnerabilities: [], warning: "Não foi encontrada correspondência CPE confirmada para esta versão. Nenhum CVE foi registrado automaticamente.", source: "https://nvd.nist.gov/developers/vulnerabilities", checkedAt: new Date().toISOString() });
+    if (!exact?.cpeName) return Response.json({ product, version, cpe: null, identifiedProduct: null, vulnerabilities: [], warning: "Não foi encontrada correspondência CPE confirmada para esta versão. Nenhum CVE foi registrado automaticamente.", source: "https://nvd.nist.gov/developers/vulnerabilities", checkedAt: new Date().toISOString() });
 
     const cveUrl = new URL("https://services.nvd.nist.gov/rest/json/cves/2.0");
     const matchStatus = "Versão confirmada no CPE/NVD";
@@ -53,7 +67,7 @@ export async function GET(request: Request) {
       const description = cve.descriptions?.find((item) => item.lang === "en")?.value ?? "Descrição indisponível.";
       return { id: cve.id, severity: metric?.baseSeverity ?? "NÃO CLASSIFICADA", score: metric?.baseScore ?? null, description, risk: mapRisk(description), url: `https://nvd.nist.gov/vuln/detail/${cve.id}`, matchStatus };
     });
-    return Response.json({ product, version, cpe: exact?.cpeName ?? null, vulnerabilities, source: "https://nvd.nist.gov/developers/vulnerabilities", checkedAt: new Date().toISOString() });
+    return Response.json({ product, version, identifiedProduct, cpe: exact?.cpeName ?? null, vulnerabilities, source: "https://nvd.nist.gov/developers/vulnerabilities", checkedAt: new Date().toISOString() });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Falha na consulta à NVD." }, { status: 502 });
   }
