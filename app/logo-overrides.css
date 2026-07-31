@@ -72,6 +72,15 @@
   justify-content: center;
 }
 
+.overview-page .pillar-row {
+  grid-template-columns: 30px 185px 1fr 30px;
+}
+
+.overview-page .pillar-copy b,
+.pillar-tabs b {
+  line-height: 1.25;
+}
+
 .overview-page .priority .full-link {
   margin-top: auto;
 }
@@ -91,7 +100,9 @@
 }
 
 .radar-legend span {
-  font-size: 9px;
+  font-size: 8px;
+  line-height: 1.25;
+  text-align: center;
   white-space: nowrap;
 }
 

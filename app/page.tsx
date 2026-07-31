@@ -35,7 +35,7 @@ function PillarBars({ answers }: { answers: AnswerState }) {
         return (
           <div className="pillar-row" key={pillar.id}>
             <span className="pillar-icon standardized"><img src="/pillar-result-icon.png" alt="" /></span>
-            <div className="pillar-copy"><b>{pillar.short}</b><small>{total}/20 pontos</small></div>
+            <div className="pillar-copy"><b>{pillar.name}</b><small>{total}/20 pontos</small></div>
             <div className="bar"><i style={{ width: `${total * 5}%`, background: pillar.color }} /></div>
             <strong style={{ color: pillar.color }}>{total}</strong>
           </div>
@@ -130,7 +130,7 @@ export default function Home() {
                 <div className="score-orbit" style={{ "--score": `${totalScore}%`, "--score-color": scoreColor(totalScore) } as React.CSSProperties}><div><strong style={{ color: scoreColor(totalScore) }}>{totalScore}</strong><span>/100</span><small>PONTOS</small></div></div>
                 <div className="score-copy"><span>NÍVEL DE MATURIDADE</span><h2 style={{ color: scoreColor(totalScore) }}>{maturity.label}</h2><p>{maturity.description}</p><div className="scale"><i style={{ left: `${totalScore}%` }} /><span>0</span><span>20</span><span>47</span><span>61</span><span>74</span><span>100</span></div></div>
               </article>
-              <article className="radar-card glow-card"><div className="section-head"><div><span>MATURIDADE POR PILAR</span><h3>Equilíbrio de capacidades</h3></div><b>ATUAL</b></div><div className="radar-wrap"><div className="radar"><i style={{ clipPath: `polygon(50% ${50 - pillarScores[0] * 2.2}%, ${50 + pillarScores[1] * 2.1}% ${50 - pillarScores[1] * .6}%, ${50 + pillarScores[2] * 1.3}% ${50 + pillarScores[2] * 1.8}%, ${50 - pillarScores[3] * 1.3}% ${50 + pillarScores[3] * 1.8}%, ${50 - pillarScores[4] * 2.1}% ${50 - pillarScores[4] * .6}%)` }} /></div><div className="radar-legend"><span>Fundamentos</span><span>Replicação</span><span>Isolamento</span><span>Resposta</span><span>Governança</span></div></div></article>
+              <article className="radar-card glow-card"><div className="section-head"><div><span>MATURIDADE POR PILAR</span><h3>Equilíbrio de capacidades</h3></div><b>ATUAL</b></div><div className="radar-wrap"><div className="radar"><i style={{ clipPath: `polygon(50% ${50 - pillarScores[0] * 2.2}%, ${50 + pillarScores[1] * 2.1}% ${50 - pillarScores[1] * .6}%, ${50 + pillarScores[2] * 1.3}% ${50 + pillarScores[2] * 1.8}%, ${50 - pillarScores[3] * 1.3}% ${50 + pillarScores[3] * 1.8}%, ${50 - pillarScores[4] * 2.1}% ${50 - pillarScores[4] * .6}%)` }} /></div><div className="radar-legend"><span>Fundamentos de<br />Proteção de Dados</span><span>Replicação e<br />Controles</span><span>Isolamento e<br />Compliance</span><span>Resposta e<br />Prontidão</span><span>Governança e<br />Gestão</span></div></div></article>
             </section>
             <section className="content-grid"><article className="panel"><div className="section-head"><div><span>DESEMPENHO</span><h3>Resultado por pilar</h3></div><button onClick={() => setView("questionnaire")}>Revisar respostas →</button></div><PillarBars answers={answers} /></article><article className="panel priority"><div className="section-head"><div><span>ATENÇÃO IMEDIATA</span><h3>Gaps prioritários</h3></div><em>{findings.filter((f) => f.score === 0).length} críticos</em></div>{findings.slice(0, 3).map(({ pillar, question }) => <div className="finding-mini" key={question.id}><span style={{ color: pillar.color }}>{pillar.icon}</span><div><b>{question.title}</b><small>{question.risk}</small></div><i>ALTA</i></div>)}<button className="full-link" onClick={() => setView("findings")}>Ver todos os achados</button></article></section>
             <section className="frameworks"><span>CROSS-COMPLIANCE</span><b>ISO/IEC 27001:2022</b><b>NIST CSF 2.0</b><b>LGPD</b><small>Mapeamentos são exposições potenciais e requerem validação especializada.</small></section>
@@ -140,7 +140,7 @@ export default function Home() {
         {view === "questionnaire" && (
           <div className="page questionnaire-page">
             <div className="page-title"><div><span className="eyebrow">QUESTIONÁRIO BASE</span><h1>Avaliação por pilar</h1><p>Registre a pontuação e as evidências observadas no ambiente.</p></div><div className="progress-ring">{totalScore}<small>/100</small></div></div>
-            <div className="pillar-tabs" role="tablist">{pillars.map((pillar, index) => <button key={pillar.id} className={activePillar === index ? "active" : ""} onClick={() => setActivePillar(index)} style={{ "--pillar": pillar.color } as React.CSSProperties}><span>{pillar.icon}</span><div><small>PILAR {index + 1}</small><b>{pillar.short}</b></div><em>{pillarScores[index]}/20</em></button>)}</div>
+            <div className="pillar-tabs" role="tablist">{pillars.map((pillar, index) => <button key={pillar.id} className={activePillar === index ? "active" : ""} onClick={() => setActivePillar(index)} style={{ "--pillar": pillar.color } as React.CSSProperties}><span>{pillar.icon}</span><div><small>PILAR {index + 1}</small><b>{pillar.name}</b></div><em>{pillarScores[index]}/20</em></button>)}</div>
             <QuestionList pillar={pillars[activePillar]} answers={answers} updateAnswer={updateAnswer} />
           </div>
         )}
