@@ -22,7 +22,7 @@ function mapRisk(description: string) {
   return "Comprometimento potencial da confidencialidade, integridade ou disponibilidade dos backups";
 }
 
-async function translateToPortuguese(description: string) {
+async function translateToPortuguese(description: string, portugueseFallback: string) {
   try {
     const translateUrl = new URL("https://translate.googleapis.com/translate_a/single");
     translateUrl.searchParams.set("client", "gtx");
@@ -31,13 +31,29 @@ async function translateToPortuguese(description: string) {
     translateUrl.searchParams.set("dt", "t");
     translateUrl.searchParams.set("q", description);
     const response = await fetch(translateUrl, { signal: AbortSignal.timeout(8000) });
-    if (!response.ok) return description;
+    if (!response.ok) throw new Error("Tradução principal indisponível");
     const data = await response.json() as Array<Array<Array<string>>>;
     const translated = data?.[0]?.map((part) => part?.[0] ?? "").join("").trim();
-    return translated || description;
+    if (translated) return translated;
   } catch {
-    return description;
+    // Tenta uma segunda fonte pública antes de usar o resumo técnico em português.
   }
+
+  try {
+    const fallbackUrl = new URL("https://api.mymemory.translated.net/get");
+    fallbackUrl.searchParams.set("q", description);
+    fallbackUrl.searchParams.set("langpair", "en|pt-BR");
+    const response = await fetch(fallbackUrl, { signal: AbortSignal.timeout(8000) });
+    if (response.ok) {
+      const data = await response.json() as { responseData?: { translatedText?: string } };
+      const translated = data.responseData?.translatedText?.trim();
+      if (translated && translated.toLowerCase() !== description.toLowerCase()) return translated;
+    }
+  } catch {
+    // O achado nunca volta ao inglês: usa o resumo técnico já mapeado em português.
+  }
+
+  return portugueseFallback;
 }
 
 async function translateInBatches<T>(items: T[], translate: (item: T) => Promise<T>) {
@@ -92,10 +108,14 @@ export async function GET(request: Request) {
       const metric = cve.metrics?.cvssMetricV31?.[0]?.cvssData ?? cve.metrics?.cvssMetricV30?.[0]?.cvssData ?? cve.metrics?.cvssMetricV2?.[0]?.cvssData;
       const portugueseDescription = cve.descriptions?.find((item) => /^(pt|pt-BR)$/i.test(item.lang))?.value;
       const originalDescription = cve.descriptions?.find((item) => item.lang === "en")?.value ?? "Descrição indisponível.";
-      return { id: cve.id, severity: metric?.baseSeverity ?? "NÃO CLASSIFICADA", score: metric?.baseScore ?? null, description: portugueseDescription ?? originalDescription, originalDescription, needsTranslation: !portugueseDescription, risk: mapRisk(originalDescription), url: `https://nvd.nist.gov/vuln/detail/${cve.id}`, matchStatus };
+      const risk = mapRisk(originalDescription);
+      return { id: cve.id, severity: metric?.baseSeverity ?? "NÃO CLASSIFICADA", score: metric?.baseScore ?? null, description: portugueseDescription ?? originalDescription, originalDescription, needsTranslation: !portugueseDescription, risk, url: `https://nvd.nist.gov/vuln/detail/${cve.id}`, matchStatus };
     }), async (vulnerability) => ({
       ...vulnerability,
-      description: vulnerability.needsTranslation ? await translateToPortuguese(vulnerability.description) : vulnerability.description,
+      description: vulnerability.needsTranslation
+        ? await translateToPortuguese(vulnerability.description, `Vulnerabilidade ${vulnerability.id} identificada para a versão instalada. Risco principal: ${vulnerability.risk}. Consulte o registro oficial da CVE para os detalhes técnicos e as condições de exploração.`)
+        : vulnerability.description,
+      descriptionLanguage: "pt-BR",
       originalDescription: undefined,
       needsTranslation: undefined,
     }));
