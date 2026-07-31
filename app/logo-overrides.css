@@ -44,30 +44,53 @@
   border-radius: 50%;
 }
 
+.radar-wrap {
+  height: 260px;
+}
+
+.radar {
+  width: 210px;
+  height: 210px;
+}
+
+.radar-legend {
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  width: 300px;
+  height: 250px;
+  transform: translate(-50%, -50%);
+}
+
+.radar-legend span {
+  font-size: 9px;
+  white-space: nowrap;
+}
+
 .radar-legend span:nth-child(1) {
-  top: 12px;
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
 }
 
 .radar-legend span:nth-child(2) {
-  top: 35%;
-  right: 7%;
+  top: 34%;
+  right: 0;
 }
 
 .radar-legend span:nth-child(3) {
-  right: 15%;
-  bottom: 7%;
+  right: 10%;
+  bottom: 0;
 }
 
 .radar-legend span:nth-child(4) {
-  left: 15%;
-  bottom: 7%;
+  left: 10%;
+  bottom: 0;
 }
 
 .radar-legend span:nth-child(5) {
-  top: 35%;
-  left: 7%;
+  top: 34%;
+  left: 0;
 }
 
 .deck-logo {
@@ -109,4 +132,6 @@
 
 @media (max-width: 760px) {
   .deck-logo { width: 105px; height: 105px; right: 6%; }
+  .radar { width: 190px; height: 190px; }
+  .radar-legend { width: 270px; height: 230px; }
 }
