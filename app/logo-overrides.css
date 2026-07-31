@@ -31,6 +31,19 @@
   transition: background 300ms ease;
 }
 
+.pillar-icon.standardized {
+  display: grid;
+  place-items: center;
+}
+
+.pillar-icon.standardized img {
+  display: block;
+  width: 26px;
+  height: 26px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
 .deck-logo {
   position: absolute;
   right: 10%;

@@ -34,7 +34,7 @@ function PillarBars({ answers }: { answers: AnswerState }) {
         const total = pillar.questions.reduce((sum, q) => sum + (answers[q.id]?.score ?? 0), 0);
         return (
           <div className="pillar-row" key={pillar.id}>
-            <span className="pillar-icon">{pillar.icon}</span>
+            <span className="pillar-icon standardized"><img src="/pillar-result-icon.png" alt="" /></span>
             <div className="pillar-copy"><b>{pillar.short}</b><small>{total}/20 pontos</small></div>
             <div className="bar"><i style={{ width: `${total * 5}%`, background: pillar.color }} /></div>
             <strong style={{ color: pillar.color }}>{total}</strong>
