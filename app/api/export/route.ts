@@ -1,6 +1,7 @@
 import pptxgen from "pptxgenjs";
 import { pillars } from "../../assessment-data";
 import coverReference from "../../assets/ppt-cover-reference.png?inline";
+import objectiveReference from "../../assets/ppt-objective-reference.png?inline";
 import xtremeItLogo from "../../assets/xtreme-it-logo.png?inline";
 
 type ExportPayload = { client: string; answers: Record<string, { score: number; note: string }>; pillarScores: number[]; totalScore: number; maturity: string; findings: Array<{ pillar: { name: string }; question: { title: string; iso: string; nist: string; lgpd: string }; score: number }> };
@@ -19,6 +20,9 @@ export async function POST(request: Request) {
   slide.addText(generatedAt, { x: 11.55, y: 6.89, w: 1.36, h: .22, fontFace: "Raleway", fontSize: 10, color: "D8D8D8", align: "right", margin: 0, breakLine: false });
   slide.addShape("line", { x: 12.05, y: 7.22, w: .43, h: 0, line: { color: "1DDBE0", width: 1.1 } });
   slide.addShape("line", { x: 12.48, y: 7.22, w: .43, h: 0, line: { color: "EC39CB", width: 1.1 } });
+  slide = pptx.addSlide();
+  slide.background = { color: "000000" };
+  slide.addImage({ data: objectiveReference, x: 0, y: 0, w: 13.334, h: 7.5 });
   slide = pptx.addSlide(); title(slide, "Diagnóstico Atual", "Nível de Maturidade em Resiliência de Dados"); slide.addText(String(data.totalScore), { x: .72, y: 1.78, w: 2.3, h: 1.15, fontSize: 60, bold: true, align: "center", color: data.totalScore <= 47 ? C.danger : C.cyan }); slide.addText("/100 PONTOS", { x: 1.25, y: 2.82, w: 1.3, h: .25, fontSize: 9, align: "center", color: C.muted }); slide.addText(data.maturity.toUpperCase(), { x: .72, y: 3.3, w: 2.3, h: .35, fontSize: 16, bold: true, align: "center", color: C.cyan }); pillars.forEach((p, i) => { const y = 1.75 + i * .68; slide.addText(p.name, { x: 3.55, y, w: 3.7, h: .25, fontSize: 11, color: C.white }); slide.addShape("rect", { x: 7.25, y: y + .03, w: 4.1, h: .12, fill: { color: "202637" }, line: { transparency: 100 } }); slide.addShape("rect", { x: 7.25, y: y + .03, w: 4.1 * data.pillarScores[i] / 20, h: .12, fill: { color: i % 2 ? C.cyan : C.magenta }, line: { transparency: 100 } }); slide.addText(`${data.pillarScores[i]}/20`, { x: 11.55, y: y - .04, w: .7, h: .25, fontSize: 10, bold: true, color: C.white }); });
   pillars.forEach((pillar, pIndex) => { slide = pptx.addSlide(); title(slide, pillar.name, `Maturidade e riscos do negócio • ${data.pillarScores[pIndex]}/20 pontos`); const rows = pillar.questions.map((q) => [{ text: q.title, options: { bold: true, color: C.white } }, { text: `${data.answers[q.id]?.score ?? 0}/${q.max}`, options: { bold: true, color: C.cyan, align: "center" as const } }, { text: data.answers[q.id]?.note || q.risk, options: { color: C.muted } }]); slide.addTable([[{ text: "CRITÉRIO", options: { bold: true } }, { text: "NOTA", options: { bold: true } }, { text: "EVIDÊNCIA / EXPOSIÇÃO", options: { bold: true } }], ...rows], { x: .62, y: 1.58, w: 12.05, h: 4.8, border: { type: "solid", color: C.line, width: .5 }, fill: C.panel, color: C.white, fontFace: "Arial", fontSize: 10, rowH: .62, colW: [3.4, .8, 7.85], margin: .12, breakLine: false, autoFit: false }); });
   const chunks = Array.from({ length: Math.ceil(data.findings.length / 7) }, (_, i) => data.findings.slice(i * 7, i * 7 + 7));
