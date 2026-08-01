@@ -81,6 +81,7 @@ export async function POST(request: Request) {
   slide = pptx.addSlide();
   slide.background = { color: "000000" };
   slide.addImage({ data: replicationControlsReference, x: 0, y: 0, w: 13.334, h: 7.5 });
+  addPillarDetailSlides(pptx, pillars[1], 1, data.answers, xtremeItLogo);
   const output = await pptx.write({ outputType: "arraybuffer" });
   return new Response(output as ArrayBuffer, { headers: { "content-type": "application/vnd.openxmlformats-officedocument.presentationml.presentation", "content-disposition": `attachment; filename="XTR-Assessment.pptx"` } });
 }
