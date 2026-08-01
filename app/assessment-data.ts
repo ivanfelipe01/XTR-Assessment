@@ -27,9 +27,9 @@ export const pillars: Pillar[] = [
     { id: "golden-copy", title: "Identificação da Golden Copy confiável para restauração (livre de ransomware ou malware)", max: 5, risk: "Cópias contaminadas podem ser restauradas e reintroduzir ransomware ou malware no ambiente recuperado.", recommendations: ["Definir critérios para identificar, validar e preservar uma Golden Copy limpa, com verificações de integridade e varredura de ameaças antes da restauração."], iso: "A.8.13", nist: "RC.RP", lgpd: "Art. 46" },
   ]},
   { id: "governanca", name: "Governança e Gestão", short: "Governança", description: "Pessoas, processos e prontidão operacional", color: "#35d999", icon: "◇", questions: [
-    { id: "testes", title: "Testes periódicos de recuperação", max: 6, risk: "A recuperabilidade real permanece não comprovada.", iso: "A.5.30", nist: "ID.IM", lgpd: "Art. 46" },
-    { id: "equipe", title: "Equipe especializada e pronta", max: 7, risk: "Dependência operacional reduz prontidão em incidentes.", iso: "A.5.2", nist: "GV.RR", lgpd: "Art. 46" },
-    { id: "runbooks", title: "Runbooks de recuperação atualizados", max: 7, risk: "A resposta pode ser improvisada em cenário de crise.", iso: "A.5.29", nist: "RS.MA", lgpd: "Art. 48" },
+    { id: "testes", title: "Testes periódicos de recuperação", max: 6, risk: "A recuperabilidade real permanece não comprovada e falhas podem ser descobertas apenas durante um incidente.", recommendations: ["Executar testes periódicos de recuperação, registrar evidências, medir RTO e RPO e tratar os desvios identificados."], iso: "A.5.30", nist: "ID.IM", lgpd: "Art. 46" },
+    { id: "equipe", title: "Equipe especializada e pronta para atuação em caso de incidente", max: 7, risk: "A indisponibilidade de profissionais capacitados aumenta o tempo de resposta e a dependência de pessoas ou fornecedores específicos.", recommendations: ["Definir responsabilidades, manter equipe especializada disponível e realizar exercícios recorrentes de resposta e recuperação."], iso: "A.5.2", nist: "GV.RR", lgpd: "Art. 46" },
+    { id: "runbooks", title: "Runbooks de recuperação atualizados frequentemente ou documentação do processo de recuperação", max: 7, risk: "A resposta pode ser improvisada, inconsistente ou dependente de conhecimento informal durante uma crise.", recommendations: ["Documentar o processo de recuperação em runbooks versionados, revisá-los frequentemente e validá-los durante testes e incidentes simulados."], iso: "A.5.29", nist: "RS.MA", lgpd: "Art. 48" },
   ]},
 ];
 
