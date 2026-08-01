@@ -1,13 +1,13 @@
-export type Question = { id: string; title: string; max: number; risk: string; iso: string; nist: string; lgpd: string };
+export type Question = { id: string; title: string; max: number; risk: string; recommendations?: string[]; iso: string; nist: string; lgpd: string };
 export type Pillar = { id: string; name: string; short: string; description: string; color: string; icon: string; questions: Question[] };
 
 export const pillars: Pillar[] = [
   { id: "fundamentos", name: "Fundamentos de Proteção de Dados", short: "Fundamentos", description: "Controles essenciais para proteger a plataforma de backup", color: "#e743cb", icon: "◉", questions: [
-    { id: "imutabilidade", title: "Backup com imutabilidade", max: 4, risk: "Cópias podem ser alteradas ou eliminadas por um atacante.", iso: "A.8.13", nist: "PR.DS", lgpd: "Art. 46" },
-    { id: "hardening", title: "Hardening da infraestrutura de backup", max: 4, risk: "Configuração insegura amplia a superfície de ataque.", iso: "A.8.9", nist: "PR.PS", lgpd: "Art. 46" },
-    { id: "acesso", title: "RBAC, MFA e SSO implementados", max: 4, risk: "Acesso administrativo pode ocorrer sem autenticação forte.", iso: "A.5.15", nist: "PR.AA", lgpd: "Art. 46" },
-    { id: "criptografia", title: "Criptografia em trânsito e/ou em repouso", max: 4, risk: "Dados podem ser interceptados ou acessados indevidamente.", iso: "A.8.24", nist: "PR.DS", lgpd: "Art. 46" },
-    { id: "segregacao", title: "Rede segregada para backup", max: 4, risk: "Movimentação lateral pode comprometer produção e backup.", iso: "A.8.22", nist: "PR.IR", lgpd: "Art. 46" },
+    { id: "imutabilidade", title: "Backup com imutabilidade", max: 4, risk: "Risco de exclusão ou alteração de backups por ações maliciosas ou acidentais.", recommendations: ["Manter e revisar periodicamente a política de imutabilidade para garantir proteção contínua dos backups."], iso: "A.8.13", nist: "PR.DS", lgpd: "Art. 46" },
+    { id: "hardening", title: "Hardening dos elementos da infraestrutura de backup", max: 4, risk: "Aumento da superfície de ataque e maior probabilidade de exploração de vulnerabilidades no ambiente de backup.", recommendations: ["Aplicar hardening em todos os componentes e considerar uma appliance virtual Linux para reduzir a exposição do ambiente Veeam Windows."], iso: "A.8.9", nist: "PR.PS", lgpd: "Art. 46" },
+    { id: "acesso", title: "RBAC, MFA e SSO implementados", max: 4, risk: "O acesso não autorizado pode comprometer, excluir ou manipular dados críticos de backup.", recommendations: ["Implementar RBAC, MFA e SSO no ambiente de backup.", "Aplicar o princípio do menor privilégio e revisar os acessos periodicamente."], iso: "A.5.15", nist: "PR.AA", lgpd: "Art. 46" },
+    { id: "criptografia", title: "Criptografia em trânsito e/ou em repouso", max: 4, risk: "Os dados podem ser interceptados ou acessados em caso de vazamento ou acesso indevido ao armazenamento.", recommendations: ["Ativar criptografia em trânsito, como TLS, e em repouso nos repositórios, backups e mídias."], iso: "A.8.24", nist: "PR.DS", lgpd: "Art. 46" },
+    { id: "segregacao", title: "Rede segregada para backup", max: 4, risk: "O tráfego não isolado pode permitir movimentação lateral e comprometer o ambiente de backup.", recommendations: ["Implementar segmentação de rede dedicada para o ambiente de backup, isolando-o do tráfego corporativo."], iso: "A.8.22", nist: "PR.IR", lgpd: "Art. 46" },
   ]},
   { id: "replicacao", name: "Replicação e Controles", short: "Replicação", description: "Redundância, retenção, monitoramento e atualização", color: "#5f8cff", icon: "⟲", questions: [
     { id: "copia-secundaria", title: "Replicação dos dados de backup", max: 5, risk: "Uma única cópia cria ponto único de falha.", iso: "A.8.13", nist: "PR.DS", lgpd: "Art. 46" },

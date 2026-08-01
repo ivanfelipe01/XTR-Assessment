@@ -1,5 +1,6 @@
 import pptxgen from "pptxgenjs";
 import { pillars } from "../../assessment-data";
+import { addPillarDetailSlides } from "../../ppt/pillar-detail";
 import coverReference from "../../assets/ppt-cover-reference.png?inline";
 import objectiveReference from "../../assets/ppt-objective-reference.png?inline";
 import resilienceMessageReference from "../../assets/ppt-resilience-message-reference.png?inline";
@@ -75,6 +76,7 @@ export async function POST(request: Request) {
   slide = pptx.addSlide();
   slide.background = { color: "000000" };
   slide.addImage({ data: dataProtectionFoundationsReference, x: 0, y: 0, w: 13.334, h: 7.5 });
+  addPillarDetailSlides(pptx, pillars[0], 0, data.answers, xtremeItLogo);
   const output = await pptx.write({ outputType: "arraybuffer" });
   return new Response(output as ArrayBuffer, { headers: { "content-type": "application/vnd.openxmlformats-officedocument.presentationml.presentation", "content-disposition": `attachment; filename="XTR-Assessment.pptx"` } });
 }
