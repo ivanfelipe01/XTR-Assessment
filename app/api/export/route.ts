@@ -4,7 +4,7 @@ import coverReference from "../../assets/ppt-cover-reference.png?inline";
 import objectiveReference from "../../assets/ppt-objective-reference.png?inline";
 import resilienceMessageReference from "../../assets/ppt-resilience-message-reference.png?inline";
 import dataResilienceJourneyReference from "../../assets/ppt-data-resilience-journey-reference.png?inline";
-import xtrAssessmentDividerReference from "../../assets/ppt-xtr-assessment-divider-reference.png?inline";
+import xtrAssessmentDividerReference from "../../assets/ppt-xtr-assessment-divider-reference.jpg?inline";
 import xtremeItLogo from "../../assets/xtreme-it-logo.png?inline";
 
 type ExportPayload = { client: string; answers: Record<string, { score: number; note: string }>; pillarScores: number[]; totalScore: number; maturity: string; findings: Array<{ pillar: { name: string }; question: { title: string; iso: string; nist: string; lgpd: string }; score: number }> };
