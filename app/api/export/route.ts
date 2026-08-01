@@ -9,6 +9,7 @@ import diagnosisDashboardBackground from "../../assets/ppt-diagnosis-dashboard-b
 import technicalAnalysisBlankReference from "../../assets/ppt-technical-analysis-blank-reference.jpg?inline";
 import executiveAnalysisBlankReference from "../../assets/ppt-executive-analysis-blank-reference.jpg?inline";
 import maturityByPillarDividerReference from "../../assets/ppt-maturity-by-pillar-divider-reference.jpg?inline";
+import dataProtectionFoundationsReference from "../../assets/ppt-data-protection-foundations-reference.jpg?inline";
 import xtremeItLogo from "../../assets/xtreme-it-logo.png?inline";
 
 type ExportPayload = { client: string; answers: Record<string, { score: number; note: string }>; pillarScores: number[]; totalScore: number; maturity: string; findings: Array<{ pillar: { name: string }; question: { title: string; iso: string; nist: string; lgpd: string }; score: number }> };
@@ -71,6 +72,9 @@ export async function POST(request: Request) {
   slide = pptx.addSlide();
   slide.background = { color: "000000" };
   slide.addImage({ data: maturityByPillarDividerReference, x: 0, y: 0, w: 13.334, h: 7.5 });
+  slide = pptx.addSlide();
+  slide.background = { color: "000000" };
+  slide.addImage({ data: dataProtectionFoundationsReference, x: 0, y: 0, w: 13.334, h: 7.5 });
   const output = await pptx.write({ outputType: "arraybuffer" });
   return new Response(output as ArrayBuffer, { headers: { "content-type": "application/vnd.openxmlformats-officedocument.presentationml.presentation", "content-disposition": `attachment; filename="XTR-Assessment.pptx"` } });
 }
