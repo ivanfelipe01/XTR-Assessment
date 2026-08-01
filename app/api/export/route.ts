@@ -7,6 +7,7 @@ import dataResilienceJourneyReference from "../../assets/ppt-data-resilience-jou
 import xtrAssessmentDividerReference from "../../assets/ppt-xtr-assessment-divider-reference.jpg?inline";
 import diagnosisDashboardBackground from "../../assets/ppt-diagnosis-dashboard-background.jpg?inline";
 import technicalAnalysisBlankReference from "../../assets/ppt-technical-analysis-blank-reference.jpg?inline";
+import executiveAnalysisBlankReference from "../../assets/ppt-executive-analysis-blank-reference.jpg?inline";
 import xtremeItLogo from "../../assets/xtreme-it-logo.png?inline";
 
 type ExportPayload = { client: string; answers: Record<string, { score: number; note: string }>; pillarScores: number[]; totalScore: number; maturity: string; findings: Array<{ pillar: { name: string }; question: { title: string; iso: string; nist: string; lgpd: string }; score: number }> };
@@ -63,6 +64,9 @@ export async function POST(request: Request) {
   slide = pptx.addSlide();
   slide.background = { color: "000000" };
   slide.addImage({ data: technicalAnalysisBlankReference, x: 0, y: 0, w: 13.334, h: 7.5 });
+  slide = pptx.addSlide();
+  slide.background = { color: "000000" };
+  slide.addImage({ data: executiveAnalysisBlankReference, x: 0, y: 0, w: 13.334, h: 7.5 });
   pillars.forEach((pillar, pIndex) => { slide = pptx.addSlide(); title(slide, pillar.name, `Maturidade e riscos do negócio • ${data.pillarScores[pIndex]}/20 pontos`); const rows = pillar.questions.map((q) => [{ text: q.title, options: { bold: true, color: C.white } }, { text: `${data.answers[q.id]?.score ?? 0}/${q.max}`, options: { bold: true, color: C.cyan, align: "center" as const } }, { text: data.answers[q.id]?.note || q.risk, options: { color: C.muted } }]); slide.addTable([[{ text: "CRITÉRIO", options: { bold: true } }, { text: "NOTA", options: { bold: true } }, { text: "EVIDÊNCIA / EXPOSIÇÃO", options: { bold: true } }], ...rows], { x: .62, y: 1.58, w: 12.05, h: 4.8, border: { type: "solid", color: C.line, width: .5 }, fill: C.panel, color: C.white, fontFace: "Arial", fontSize: 10, rowH: .62, colW: [3.4, .8, 7.85], margin: .12, breakLine: false, autoFit: false }); });
   const chunks = Array.from({ length: Math.ceil(data.findings.length / 7) }, (_, i) => data.findings.slice(i * 7, i * 7 + 7));
   for (const [index, chunk] of chunks.entries()) { slide = pptx.addSlide(); title(slide, "Exposições ISO/IEC 27001 • NIST • LGPD", `Potenciais riscos em recuperação e continuidade ${index + 1}/${chunks.length}`); const rows = chunk.map((f, i) => [String(index * 7 + i + 1).padStart(2, "0"), f.question.title, f.question.iso, f.question.nist, f.question.lgpd]); slide.addTable([["#", "RISCO / GAP MAPEADO", "ISO 27001", "NIST CSF", "LGPD"], ...rows], { x: .62, y: 1.58, w: 12.05, h: 4.9, border: { type: "solid", color: C.line, width: .5 }, fill: C.panel, color: C.white, fontFace: "Arial", fontSize: 9, rowH: .58, colW: [.55, 6.2, 1.6, 1.6, 2.1], margin: .1, bold: false }); }
