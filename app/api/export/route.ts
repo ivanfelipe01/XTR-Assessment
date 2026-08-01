@@ -1,6 +1,7 @@
 import pptxgen from "pptxgenjs";
 import { pillars } from "../../assessment-data";
 import { addPillarDetailSlides } from "../../ppt/pillar-detail";
+import { addVulnerabilitySummarySlides, type SoftwareForExport, type VulnerabilityForExport } from "../../ppt/vulnerability-summary";
 import coverReference from "../../assets/ppt-cover-reference.jpg?inline";
 import objectiveReference from "../../assets/ppt-objective-reference.jpg?inline";
 import resilienceMessageReference from "../../assets/ppt-resilience-message-reference.jpg?inline";
@@ -18,7 +19,7 @@ import governanceManagementReference from "../../assets/ppt-governance-managemen
 import vulnerabilitiesCriminalsDivider from "../../assets/ppt-vulnerabilities-criminals-divider.jpg?inline";
 import xtremeItLogo from "../../assets/xtreme-it-logo.png?inline";
 
-type ExportPayload = { client: string; answers: Record<string, { score: number; note: string }>; pillarScores: number[]; totalScore: number; maturity: string; findings: Array<{ pillar: { name: string }; question: { title: string; iso: string; nist: string; lgpd: string }; score: number }> };
+type ExportPayload = { client: string; answers: Record<string, { score: number; note: string }>; pillarScores: number[]; totalScore: number; maturity: string; findings: Array<{ pillar: { name: string }; question: { title: string; iso: string; nist: string; lgpd: string }; score: number }>; software?: SoftwareForExport[]; vulnerabilities?: VulnerabilityForExport[] };
 
 const C = { bg: "05070D", panel: "111521", cyan: "1DDBE0", magenta: "EC39CB", white: "F5F7FB", muted: "8791A5", line: "283047", danger: "FF4D68" };
 function title(slide: pptxgen.Slide, heading: string, sub = "") { slide.background = { color: C.bg }; slide.addText("XTREME IT", { x: .45, y: .24, w: 1.2, h: .2, fontFace: "Arial", fontSize: 8, bold: true, color: C.white }); slide.addText(heading, { x: .55, y: .62, w: 11.8, h: .42, fontFace: "Arial", fontSize: 23, bold: true, color: C.white, breakLine: false }); if (sub) slide.addText(sub, { x: .55, y: 1.04, w: 11.6, h: .22, fontFace: "Arial", fontSize: 8, color: C.muted }); slide.addShape("line", { x: .55, y: 1.34, w: 12.1, h: 0, line: { color: C.line, width: 1 } }); }
@@ -101,6 +102,7 @@ export async function POST(request: Request) {
   slide = pptx.addSlide();
   slide.background = { color: "000000" };
   slide.addImage({ data: vulnerabilitiesCriminalsDivider, x: 0, y: 0, w: 13.334, h: 7.5 });
+  addVulnerabilitySummarySlides(pptx, data.software ?? [], data.vulnerabilities ?? [], xtremeItLogo);
   const output = await pptx.write({ outputType: "arraybuffer" });
   return new Response(output as ArrayBuffer, { headers: { "content-type": "application/vnd.openxmlformats-officedocument.presentationml.presentation", "content-disposition": `attachment; filename="XTR-Assessment.pptx"` } });
 }

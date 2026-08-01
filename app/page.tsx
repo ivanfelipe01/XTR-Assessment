@@ -130,7 +130,7 @@ export default function Home() {
       const response = await fetch("/api/export", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ client, answers, pillarScores, totalScore, maturity: maturity.label, findings }),
+        body: JSON.stringify({ client, answers, pillarScores, totalScore, maturity: maturity.label, findings, software, vulnerabilities }),
       });
       if (!response.ok) throw new Error("export failed");
       const blob = await response.blob();
