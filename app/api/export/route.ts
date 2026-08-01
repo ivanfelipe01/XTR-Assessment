@@ -17,6 +17,7 @@ import isolationComplianceReference from "../../assets/ppt-isolation-compliance-
 import responseReadinessReference from "../../assets/ppt-response-readiness-reference.jpg?inline";
 import governanceManagementReference from "../../assets/ppt-governance-management-reference.jpg?inline";
 import vulnerabilitiesCriminalsDivider from "../../assets/ppt-vulnerabilities-criminals-divider.jpg?inline";
+import vulnerabilityAnalysisBackground from "../../assets/ppt-vulnerability-analysis-background.jpg?inline";
 import xtremeItLogo from "../../assets/xtreme-it-logo.png?inline";
 
 type ExportPayload = { client: string; answers: Record<string, { score: number; note: string }>; pillarScores: number[]; totalScore: number; maturity: string; findings: Array<{ pillar: { name: string }; question: { title: string; iso: string; nist: string; lgpd: string }; score: number }>; software?: SoftwareForExport[]; vulnerabilities?: VulnerabilityForExport[] };
@@ -102,7 +103,7 @@ export async function POST(request: Request) {
   slide = pptx.addSlide();
   slide.background = { color: "000000" };
   slide.addImage({ data: vulnerabilitiesCriminalsDivider, x: 0, y: 0, w: 13.334, h: 7.5 });
-  addVulnerabilitySummarySlides(pptx, data.software ?? [], data.vulnerabilities ?? [], xtremeItLogo);
+  addVulnerabilitySummarySlides(pptx, data.software ?? [], data.vulnerabilities ?? [], vulnerabilityAnalysisBackground);
   const output = await pptx.write({ outputType: "arraybuffer" });
   return new Response(output as ArrayBuffer, { headers: { "content-type": "application/vnd.openxmlformats-officedocument.presentationml.presentation", "content-disposition": `attachment; filename="XTR-Assessment.pptx"` } });
 }
