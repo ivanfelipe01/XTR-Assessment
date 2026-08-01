@@ -1,10 +1,10 @@
 import pptxgen from "pptxgenjs";
 import { pillars } from "../../assessment-data";
 import { addPillarDetailSlides } from "../../ppt/pillar-detail";
-import coverReference from "../../assets/ppt-cover-reference.png?inline";
-import objectiveReference from "../../assets/ppt-objective-reference.png?inline";
-import resilienceMessageReference from "../../assets/ppt-resilience-message-reference.png?inline";
-import dataResilienceJourneyReference from "../../assets/ppt-data-resilience-journey-reference.png?inline";
+import coverReference from "../../assets/ppt-cover-reference.jpg?inline";
+import objectiveReference from "../../assets/ppt-objective-reference.jpg?inline";
+import resilienceMessageReference from "../../assets/ppt-resilience-message-reference.jpg?inline";
+import dataResilienceJourneyReference from "../../assets/ppt-data-resilience-journey-reference.jpg?inline";
 import xtrAssessmentDividerReference from "../../assets/ppt-xtr-assessment-divider-reference.jpg?inline";
 import diagnosisDashboardBackground from "../../assets/ppt-diagnosis-dashboard-background.jpg?inline";
 import technicalAnalysisBlankReference from "../../assets/ppt-technical-analysis-blank-reference.jpg?inline";
