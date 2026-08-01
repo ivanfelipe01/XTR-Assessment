@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { pillars, maturityForScore, type Pillar } from "./assessment-data";
 
-type View = "overview" | "questionnaire" | "findings" | "report";
+type View = "overview" | "questionnaire" | "findings";
 type AnswerState = Record<string, { score: number; note: string }>;
 type Vulnerability = { id: string; severity: string; score: number | null; description: string; risk: string; url: string; matchStatus: string; serverId: string; server: string; site: string; version: string; identifiedProduct?: string };
 type SoftwareEntry = { id: string; server: string; site: string; version: string; checking: boolean; checkedAt?: string; error?: string; identifiedProduct?: string };
@@ -151,7 +151,6 @@ export default function Home() {
           <button className={view === "overview" ? "active" : ""} onClick={() => setView("overview")}><span>⌁</span> Visão geral</button>
           <button className={view === "questionnaire" ? "active" : ""} onClick={() => setView("questionnaire")}><span>◫</span> Questionário</button>
           <button className={view === "findings" ? "active" : ""} onClick={() => setView("findings")}><span>△</span> Achados <em>{findingCount}</em></button>
-          <button className={view === "report" ? "active" : ""} onClick={() => setView("report")}><span>▤</span> Relatório</button>
         </nav>
         <div className="sidebar-foot xtreme-credit"><small>Powered by</small><img src="/xtreme-it-logo.png" alt="Xtreme IT" /></div>
       </aside>
@@ -189,9 +188,6 @@ export default function Home() {
           <div className="page"><div className="page-title"><div><span className="eyebrow">EXPOSIÇÕES E RISCOS</span><h1>Achados priorizados</h1><p>Cruzamento técnico com ISO/IEC 27001, NIST CSF 2.0, LGPD e NVD.</p></div><div className="stat-pill"><strong>{findingCount}</strong><span>achados<br />ativos</span></div></div>{vulnerabilities.length > 0 && <section className="vulnerability-findings"><div className="section-head"><div><span>VULNERABILIDADES DE SOFTWARE</span><h3>CVEs e riscos mapeados para a versão instalada</h3></div><em>{vulnerabilities.length} CVEs</em></div>{vulnerabilities.map((vuln) => <a href={vuln.url} target="_blank" rel="noreferrer" className="vulnerability-row" key={`${vuln.serverId}-${vuln.id}`}><div><strong>{vuln.id}</strong><span>{vuln.identifiedProduct || vuln.server}{vuln.site ? ` · Site: ${vuln.site}` : ""} · {vuln.version}</span></div><div className="vulnerability-risk"><b>RISCO MAPEADO</b><strong>{vuln.risk}</strong><p>{vuln.description}</p></div><em className={vuln.severity === "CRITICAL" || vuln.severity === "HIGH" ? "critical" : "medium"}>{vuln.severity}{vuln.score ? ` · ${vuln.score}` : ""}</em><small>{vuln.matchStatus}</small></a>)}</section>}<div className="findings-table"><div className="table-head"><span>ACHADO</span><span>CRITICIDADE</span><span>ISO 27001</span><span>NIST</span><span>LGPD</span></div>{findings.map(({ pillar, question, score }, index) => <div className="table-row" key={question.id}><span><i>{String(index + 1).padStart(2, "0")}</i><div><b>{question.title}</b><small>{pillar.name} · {score}/{question.max} pontos</small></div></span><em className={score === 0 ? "critical" : "medium"}>{score === 0 ? "CRÍTICA" : "MÉDIA"}</em><code>{question.iso}</code><code>{question.nist}</code><code>{question.lgpd}</code></div>)}</div></div>
         )}
 
-        {view === "report" && (
-          <div className="page report-page"><div className="page-title"><div><span className="eyebrow">RELATÓRIO EXECUTIVO</span><h1>Prévia da apresentação</h1><p>Conteúdo estruturado para o padrão institucional XTR Assessment.</p></div><button className="primary large" onClick={exportDeck}>{exporting ? "Gerando apresentação..." : "Gerar PowerPoint editável"}</button></div><div className="deck-preview"><div className="deck-slide"><div className="deck-brand">XTREME IT</div><div><span>ASSESSMENT DE MATURIDADE</span><h2>EM <b>RESILIÊNCIA DE DADOS</b></h2><p>{client}</p></div><img className="deck-logo" src="/xtr-assessment-logo.png" alt="XTR Assessment" /></div><div className="deck-outline"><h3>Estrutura prevista</h3>{["Capa e objetivo", "Diagnóstico atual", "Maturidade por pilar", "Exposições ISO/IEC 27001", "Exposições NIST CSF", "Exposições LGPD", "Conclusões e próximos passos"].map((item, i) => <div key={item}><span>{String(i + 1).padStart(2, "0")}</span><b>{item}</b></div>)}</div></div></div>
-        )}
       </section>
     </main>
   );
