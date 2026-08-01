@@ -54,14 +54,10 @@ function addInstitutionalHeader(slide: pptxgen.Slide, logo: string, continuation
 
 function addPillarCard(slide: pptxgen.Slide, pillar: Pillar, index: number, score: number, max: number) {
   slide.addShape("roundRect", { x: .48, y: .9, w: 12.36, h: .92, rectRadius: .05, fill: { color: "070913", transparency: 4 }, line: { color: T.purple, width: 1 } });
-  slide.addShape("ellipse", { x: .72, y: 1.1, w: .48, h: .48, fill: { color: T.purpleDark, transparency: 16 }, line: { color: T.purple, width: 1.2 } });
-  slide.addText("▣", { x: .72, y: 1.19, w: .48, h: .17, fontFace: "Arial", fontSize: 12, bold: true, color: T.purple, align: "center", margin: 0 });
-  slide.addText(`NÍVEL ${index + 1}`, { x: 1.38, y: 1.06, w: .9, h: .15, fontFace: "Arial", fontSize: 7.2, bold: true, color: T.purple, margin: 0 });
-  slide.addText(pillar.name.toUpperCase(), { x: 1.38, y: 1.27, w: 3.55, h: .24, fontFace: "Arial", fontSize: 13.5, bold: true, color: T.white, margin: 0, breakLine: false, fit: "shrink" });
+  slide.addText(`NÍVEL ${index + 1}`, { x: .78, y: 1.06, w: .9, h: .15, fontFace: "Arial", fontSize: 7.2, bold: true, color: T.purple, margin: 0 });
+  slide.addText(pillar.name.toUpperCase(), { x: .78, y: 1.27, w: 4.14, h: .24, fontFace: "Arial", fontSize: 13.5, bold: true, color: T.white, margin: 0, breakLine: false, fit: "shrink" });
   slide.addShape("line", { x: 5.12, y: 1.08, w: 0, h: .55, line: { color: T.line, width: 1 } });
-  slide.addShape("ellipse", { x: 5.42, y: 1.12, w: .42, h: .42, fill: { color: "101426" }, line: { color: T.blue, width: 1 } });
-  slide.addText("◉", { x: 5.42, y: 1.2, w: .42, h: .16, fontFace: "Arial", fontSize: 10, color: T.blue, align: "center", margin: 0 });
-  slide.addText(clean(pillar.description, "Avalia os controles que sustentam a proteção e a resiliência do ambiente de backup."), { x: 5.98, y: 1.09, w: 4.3, h: .49, fontFace: "Arial", fontSize: 8.6, color: T.muted, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
+  slide.addText(clean(pillar.description, "Avalia os controles que sustentam a proteção e a resiliência do ambiente de backup."), { x: 5.47, y: 1.09, w: 4.82, h: .49, fontFace: "Arial", fontSize: 8.6, color: T.muted, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
   slide.addText("MÁXIMA", { x: 10.5, y: 1.07, w: .78, h: .14, fontFace: "Arial", fontSize: 6.5, bold: true, color: T.purple, align: "center", margin: 0 });
   slide.addText(String(max), { x: 10.5, y: 1.25, w: .78, h: .3, fontFace: "Arial", fontSize: 19, bold: true, color: T.purple, align: "center", margin: 0 });
   slide.addText("ATUAL", { x: 11.63, y: 1.07, w: .78, h: .14, fontFace: "Arial", fontSize: 6.5, bold: true, color: T.blue, align: "center", margin: 0 });
@@ -91,13 +87,11 @@ function addControlRow(slide: pptxgen.Slide, pillar: Pillar, index: number, answ
   const note = clean(answers[q.id]?.note, "Evidência não informada pelo cliente.");
   const recommendations = q.recommendations?.length ? q.recommendations : ["Definir e executar um plano de adequação para este controle."];
   columns.forEach((c) => slide.addShape("rect", { x: c.x, y, w: c.w, h, fill: { color: T.panel }, line: { color: T.line, width: .55 } }));
-  slide.addShape("ellipse", { x: .65, y: y + .17, w: .3, h: .3, fill: { color: T.purpleDark, transparency: 12 }, line: { color: T.purple, width: .8 } });
-  slide.addText(["◉", "⚙", "◎", "▱", "⇄"][index % 5], { x: .65, y: y + .23, w: .3, h: .12, fontFace: "Arial", fontSize: 7.2, color: T.purple, align: "center", margin: 0 });
-  slide.addText(q.title, { x: 1.02, y: y + .14, w: 1.42, h: h - .25, fontFace: "Arial", fontSize: 7.6, bold: true, color: T.white, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
-  slide.addShape("ellipse", { x: 2.76, y: y + .17, w: .28, h: .28, fill: { color: status.color, transparency: 78 }, line: { color: status.color, width: 1 } });
-  slide.addText(status.symbol, { x: 2.76, y: y + .215, w: .28, h: .13, fontFace: "Arial", fontSize: 8.4, bold: true, color: status.color, align: "center", margin: 0 });
-  slide.addText(status.label, { x: 3.13, y: y + .15, w: 1.74, h: .15, fontFace: "Arial", fontSize: 6.1, bold: true, color: status.color, margin: 0 });
-  slide.addText(note, { x: 2.76, y: y + .39, w: 2.34, h: h - .5, fontFace: "Arial", fontSize: 6.7, color: T.muted, valign: "top", margin: 0, breakLine: false, fit: "shrink" });
+  slide.addText(q.title, { x: .68, y: y + .14, w: 1.72, h: h - .25, fontFace: "Arial", fontSize: 7.6, bold: true, color: T.white, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
+  slide.addShape("ellipse", { x: 2.76, y: y + .14, w: .23, h: .23, fill: { color: status.color, transparency: 78 }, line: { color: status.color, width: .9 } });
+  slide.addText(status.symbol, { x: 2.76, y: y + .175, w: .23, h: .11, fontFace: "Arial", fontSize: 7.2, bold: true, color: status.color, align: "center", margin: 0 });
+  slide.addText(status.label, { x: 3.1, y: y + .15, w: 1.77, h: .14, fontFace: "Arial", fontSize: 6.1, bold: true, color: status.color, margin: 0 });
+  slide.addText(note, { x: 2.76, y: y + .43, w: 2.34, h: h - .53, fontFace: "Arial", fontSize: 6.7, color: T.muted, valign: "top", margin: 0, breakLine: false, fit: "shrink" });
   slide.addText([{ text: "• ", options: { color: T.purple, bold: true } }, { text: clean(q.risk, "Risco não informado."), options: { color: T.muted } }], { x: 5.43, y: y + .17, w: 1.9, h: h - .3, fontFace: "Arial", fontSize: 6.6, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
   const recRuns = recommendations.flatMap((rec, i) => [{ text: "• ", options: { color: T.purple, bold: true } }, { text: `${clean(rec, "Recomendação não informada.")}${i < recommendations.length - 1 ? "\n" : ""}`, options: { color: T.muted } }]);
   slide.addText(recRuns, { x: 7.65, y: y + .17, w: 2.42, h: h - .3, fontFace: "Arial", fontSize: 6.5, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
