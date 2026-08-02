@@ -144,8 +144,8 @@ export async function POST(request: Request) {
   slide.background = { color: "000000" };
   slide.addImage({ data: nextStepsBlank, x: 0, y: 0, w: 13.334, h: 7.5 });
   slide.addShape("rect", { x: .35, y: .67, w: 7.85, h: 1.36, fill: { color: "141416" }, line: { transparency: 100 } });
-  slide.addText("Evolução de Maturidade", { x: .45, y: .94, w: 7.45, h: .48, fontFace: "Arial", fontSize: 31, bold: true, color: C.white, margin: 0, breakLine: false });
-  slide.addText("Impacto esperado com Serviços Gerenciados", { x: .46, y: 1.56, w: 6.8, h: .25, fontFace: "Arial", fontSize: 13, color: "E0E2E8", margin: 0, breakLine: false });
+  slide.addText("Evolução de Maturidade", { x: .45, y: .94, w: 7.45, h: .48, fontFace: "Raleway", fontSize: 31, bold: true, color: C.white, margin: 0, breakLine: false });
+  slide.addText("Impacto esperado com Serviços Gerenciados", { x: .46, y: 1.56, w: 6.8, h: .25, fontFace: "Raleway", fontSize: 13, color: "E0E2E8", margin: 0, breakLine: false });
   slide.addShape("roundRect", { x: .55, y: 2.45, w: 3.15, h: 3.72, rectRadius: .06, fill: { color: "080B12", transparency: 5 }, line: { color: "3A284D", width: 1 } });
   slide.addText("EVOLUÇÃO DO SCORE", { x: .8, y: 2.72, w: 2.65, h: .2, fontFace: "Arial", fontSize: 9, bold: true, color: "AAB2C2", align: "center", margin: 0 });
   slide.addShape("ellipse", { x: .83, y: 3.18, w: 1.05, h: 1.05, fill: { color: "05070D" }, line: { color: currentMaturityColor, width: 3 } });
@@ -159,12 +159,16 @@ export async function POST(request: Request) {
   slide.addShape("roundRect", { x: 1.12, y: 5.31, w: 2.03, h: .45, rectRadius: .06, fill: { color: "0A3028" }, line: { color: "35D999", width: 1 } });
   slide.addText(`+${Math.max(0, projectedTotalScore - data.totalScore)} PONTOS`, { x: 1.2, y: 5.44, w: 1.87, h: .16, fontFace: "Arial", fontSize: 8.5, bold: true, color: "35D999", align: "center", margin: 0, breakLine: false });
   slide.addShape("roundRect", { x: 3.95, y: 2.45, w: 8.83, h: 3.72, rectRadius: .06, fill: { color: "080B12", transparency: 5 }, line: { color: "263044", width: 1 } });
-  slide.addText("EQUILÍBRIO DE CAPACIDADES", { x: 4.25, y: 2.72, w: 3.5, h: .2, fontFace: "Arial", fontSize: 9, bold: true, color: "AAB2C2", margin: 0 });
-  slide.addShape("ellipse", { x: 10.37, y: 2.75, w: .1, h: .1, fill: { color: C.magenta }, line: { transparency: 100 } });
-  slide.addText("ATUAL", { x: 10.52, y: 2.72, w: .62, h: .16, fontFace: "Arial", fontSize: 6.5, color: "AAB2C2", margin: 0 });
-  slide.addShape("ellipse", { x: 11.3, y: 2.75, w: .1, h: .1, fill: { color: C.cyan }, line: { transparency: 100 } });
-  slide.addText("COM ISG", { x: 11.45, y: 2.72, w: .8, h: .16, fontFace: "Arial", fontSize: 6.5, color: "AAB2C2", margin: 0 });
-  pillars.forEach((pillar, index) => { const y = 3.23 + index * .53; const current = data.pillarScores[index] ?? 0; const future = projectedPillarScores[index] ?? current; slide.addText(pillar.name, { x: 4.25, y: y - .02, w: 2.45, h: .26, fontFace: "Arial", fontSize: 7.4, color: C.white, valign: "mid", margin: 0, breakLine: false }); slide.addShape("roundRect", { x: 6.82, y, w: 4.75, h: .1, rectRadius: .02, fill: { color: "202637" }, line: { transparency: 100 } }); if (future > 0) slide.addShape("roundRect", { x: 6.82, y, w: 4.75 * future / 20, h: .1, rectRadius: .02, fill: { color: C.cyan, transparency: 18 }, line: { transparency: 100 } }); slide.addShape("roundRect", { x: 6.82, y: y + .15, w: 4.75, h: .1, rectRadius: .02, fill: { color: "202637" }, line: { transparency: 100 } }); if (current > 0) slide.addShape("roundRect", { x: 6.82, y: y + .15, w: 4.75 * current / 20, h: .1, rectRadius: .02, fill: { color: C.magenta, transparency: 12 }, line: { transparency: 100 } }); slide.addText(`${current} → ${future}`, { x: 11.73, y: y - .02, w: .7, h: .25, fontFace: "Arial", fontSize: 7.2, bold: true, color: future > current ? "35D999" : "AAB2C2", align: "right", margin: 0, breakLine: false }); });
+  slide.addText("MATURIDADE POR PILAR", { x: 4.25, y: 2.69, w: 2.7, h: .16, fontFace: "Raleway", fontSize: 7.2, charSpacing: 1.3, color: "8791A5", margin: 0, breakLine: false });
+  slide.addText("Equilíbrio de capacidades", { x: 4.25, y: 2.91, w: 3.6, h: .27, fontFace: "Raleway", fontSize: 14, bold: true, color: C.white, margin: 0, breakLine: false });
+  slide.addShape("ellipse", { x: 10.37, y: 2.78, w: .1, h: .1, fill: { color: C.magenta }, line: { transparency: 100 } });
+  slide.addText("ATUAL", { x: 10.52, y: 2.75, w: .62, h: .16, fontFace: "Raleway", fontSize: 6.5, color: "AAB2C2", margin: 0 });
+  slide.addShape("ellipse", { x: 11.3, y: 2.78, w: .1, h: .1, fill: { color: C.cyan }, line: { transparency: 100 } });
+  slide.addText("COM ISG", { x: 11.45, y: 2.75, w: .8, h: .16, fontFace: "Raleway", fontSize: 6.5, color: "AAB2C2", margin: 0 });
+  slide.addChart(pptx.ChartType.radar, [
+    { name: "Com ISG", labels: pillars.map((pillar) => pillar.name), values: projectedPillarScores },
+    { name: "Atual", labels: pillars.map((pillar) => pillar.name), values: data.pillarScores.map((score) => score ?? 0) },
+  ], { x: 5.18, y: 3.18, w: 6.25, h: 2.72, radarStyle: "filled", chartColors: [C.cyan, C.magenta], chartColorsOpacity: 48, showLegend: false, showTitle: false, showValue: false, showCatName: false, catAxisLabelFontFace: "Raleway", catAxisLabelFontSize: 7.5, catAxisLabelColor: "98A2B7", valAxisMinVal: 0, valAxisMaxVal: 20, valAxisMajorUnit: 5, valAxisLabelColor: "080B12", valAxisLabelFontSize: 1, valAxisLineColor: "30384D", valAxisLineSize: 1, valGridLine: { color: "30384D", width: 1 }, showCatAxisTitle: false, showValAxisTitle: false, showLabel: false, showSerName: false, lineSize: 1.5, showMarker: false, showBorder: false });
   slide = pptx.addSlide();
   slide.background = { color: "000000" };
   slide.addImage({ data: continuityClosing, x: 0, y: 0, w: 13.334, h: 7.5 });
