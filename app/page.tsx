@@ -233,8 +233,8 @@ export default function Home() {
 
       <section className="workspace">
         <header className="topbar">
-          <div className="topbar-brand"><img src="/xtr-assessment-logo.png" alt="" /><p>XTR ASSESSMENT <span>/</span> {view === "overview" ? "VISÃO GERAL" : view.toUpperCase()}</p></div>
-          <div className="top-actions"><span className="save-state"><i />{saved ? "Salvo agora" : "Salvando..."}</span><button className="primary" onClick={exportDeck} disabled={exporting}>{exporting ? "Gerando..." : "Exportar PowerPoint"}</button></div>
+          <div className="topbar-brand"><img src="/xtr-assessment-logo.png" alt="" /><p>XTR ASSESSMENT <span>/</span> {view === "overview" ? "VISÃO GERAL" : view === "questionnaire" ? "QUESTIONÁRIO" : "ACHADOS"}</p></div>
+          <div className="top-actions"><span className="save-state"><i />{saved ? "Salvo agora" : "Salvando..."}</span><button className="primary" onClick={exportDeck} disabled={exporting}>{exporting ? "Gerando..." : "Gerar Relatório"}</button></div>
         </header>
 
         {view === "overview" && (
