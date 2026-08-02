@@ -83,6 +83,7 @@ export default function Home() {
   const isgPillarScores = useMemo(() => pillars.map((pillar) => pillar.questions.reduce((sum, question) => sum + (isgAnswers[question.id]?.score ?? 0), 0)), [isgAnswers]);
   const isgTotalScore = isgPillarScores.reduce((sum, score) => sum + score, 0);
   const maturity = maturityForScore(totalScore);
+  const isgMaturity = maturityForScore(isgTotalScore);
   const allFindings = useMemo(
     () => pillars.flatMap((pillar) => pillar.questions.filter((q) => (answers[q.id]?.score ?? 0) < q.max).map((q) => ({ pillar, question: q, score: answers[q.id]?.score ?? 0 }))),
     [answers],
@@ -265,10 +266,14 @@ export default function Home() {
         {view === "overview" && (
           <div className="page overview-page">
             <div className="page-title"><div><span className="eyebrow">DIAGNÓSTICO ATUAL</span><h1>Maturidade em Resiliência de Dados</h1><p>Visão consolidada do nível de proteção, prontidão e governança.</p></div><div className="assessment-identification"><label>CLIENTE<input value={client} onChange={(e) => { setClient(e.target.value); setSaved(false); }} /></label><label>ESPECIALISTA RESPONSÁVEL<input value={specialist} onChange={(e) => { setSpecialist(e.target.value); setSaved(false); }} /></label></div></div>
-            <section className="hero-grid">
-              <article className="score-card glow-card">
+            <section className="hero-grid comparison-grid">
+              <article className="score-card compact-score glow-card">
                 <div className="score-orbit" style={{ "--score": `${totalScore}%`, "--score-color": scoreColor(totalScore) } as React.CSSProperties}><div><strong style={{ color: scoreColor(totalScore) }}>{totalScore}</strong><span>/100</span><small>PONTOS</small></div></div>
-                <div className="score-copy"><span>NÍVEL DE MATURIDADE</span><h2 style={{ color: scoreColor(totalScore) }}>{maturity.label}</h2><p>{maturity.description}</p><div className="scale"><i style={{ left: `${totalScore}%` }} /><span>0</span><span>20</span><span>47</span><span>61</span><span>74</span><span>100</span></div></div>
+                <div className="score-copy"><span>CENÁRIO ATUAL</span><h2 style={{ color: scoreColor(totalScore) }}>{maturity.label}</h2><p>{maturity.description}</p><div className="scale"><i style={{ left: `${totalScore}%` }} /><span>0</span><span>20</span><span>47</span><span>61</span><span>74</span><span>100</span></div></div>
+              </article>
+              <article className="score-card compact-score isg-score-card glow-card">
+                <div className="score-orbit" style={{ "--score": `${isgTotalScore}%`, "--score-color": scoreColor(isgTotalScore) } as React.CSSProperties}><div><strong style={{ color: scoreColor(isgTotalScore) }}>{isgTotalScore}</strong><span>/100</span><small>COM ISG</small></div></div>
+                <div className="score-copy"><span>MATURIDADE PROJETADA</span><h2 style={{ color: scoreColor(isgTotalScore) }}>{isgMaturity.label}</h2><p>{isgMaturity.description}</p><div className="isg-gain">↗ +{Math.max(0, isgTotalScore - totalScore)} pontos de maturidade</div><button className="score-detail-link" onClick={() => setView("isg")}>Revisar projeção →</button></div>
               </article>
               <article className="radar-card glow-card"><div className="section-head"><div><span>MATURIDADE POR PILAR</span><h3>Equilíbrio de capacidades</h3></div><div className="radar-key"><span><i className="current-dot" />ATUAL</span><span><i className="future-dot" />COM ISG</span></div></div><div className="radar-wrap"><div className="radar"><i className="future-shape" style={{ clipPath: radarPolygon(isgPillarScores) }} /><i className="current-shape" style={{ clipPath: radarPolygon(pillarScores) }} /></div><div className="radar-legend"><span>Fundamentos de<br />Proteção de Dados</span><span>Replicação e<br />Controles</span><span>Isolamento e<br />Compliance</span><span>Resposta e<br />Prontidão</span><span>Governança e<br />Gestão</span></div></div></article>
             </section>
