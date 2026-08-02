@@ -7,6 +7,7 @@ type View = "overview" | "questionnaire" | "findings";
 type AnswerState = Record<string, { score: number; note: string }>;
 type Vulnerability = { id: string; severity: string; score: number | null; description: string; risk: string; url: string; matchStatus: string; serverId: string; server: string; site: string; version: string; identifiedProduct?: string };
 type SoftwareEntry = { id: string; server: string; site: string; version: string; checking: boolean; checkedAt?: string; error?: string; identifiedProduct?: string };
+type AssessmentFile = { schemaVersion?: number; assessmentId?: string; client?: string; specialist?: string; exportedAt?: string; answers?: AnswerState; software?: SoftwareEntry[]; vulnerabilities?: Vulnerability[]; excludedFindingIds?: string[] };
 
 const demoAnswers: AnswerState = Object.fromEntries(
   pillars.flatMap((pillar) =>
@@ -48,6 +49,11 @@ function PillarBars({ answers }: { answers: AnswerState }) {
 }
 
 export default function Home() {
+  const [assessmentStarted, setAssessmentStarted] = useState(false);
+  const [newAssessmentOpen, setNewAssessmentOpen] = useState(false);
+  const [specialist, setSpecialist] = useState("");
+  const [assessmentId, setAssessmentId] = useState(() => crypto.randomUUID());
+  const [importError, setImportError] = useState("");
   const [view, setView] = useState<View>("overview");
   const [answers, setAnswers] = useState<AnswerState>(demoAnswers);
   const [client, setClient] = useState("Cliente demonstração");
@@ -78,13 +84,53 @@ export default function Home() {
         await fetch("/api/assessments", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ id: "current", client, answers: { answers, software, vulnerabilities, excludedFindingIds }, score: totalScore, maturity: maturity.label }),
+          body: JSON.stringify({ id: assessmentId, client, answers: { specialist, answers, software, vulnerabilities, excludedFindingIds }, score: totalScore, maturity: maturity.label }),
         });
         setSaved(true);
       } catch { /* stays as a draft in the current session */ }
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [answers, client, excludedFindingIds, maturity.label, saved, software, totalScore, vulnerabilities]);
+  }, [answers, assessmentId, client, excludedFindingIds, maturity.label, saved, software, specialist, totalScore, vulnerabilities]);
+
+  const createAssessment = () => {
+    if (!client.trim() || !specialist.trim()) return;
+    setAssessmentId(crypto.randomUUID());
+    setAnswers(emptyAnswers);
+    setSoftware([{ id: crypto.randomUUID(), server: "", site: "", version: "", checking: false }]);
+    setVulnerabilities([]);
+    setExcludedFindingIds([]);
+    setView("overview");
+    setActivePillar(0);
+    setNewAssessmentOpen(false);
+    setAssessmentStarted(true);
+    setSaved(false);
+  };
+
+  const importAssessment = async (file: File | undefined) => {
+    if (!file) return;
+    setImportError("");
+    try {
+      const imported = JSON.parse(await file.text()) as AssessmentFile;
+      if (!imported.client || !imported.answers || typeof imported.answers !== "object") throw new Error("Arquivo incompatível");
+      const normalizedAnswers: AnswerState = Object.fromEntries(pillars.flatMap((pillar) => pillar.questions.map((question) => {
+        const value = imported.answers?.[question.id];
+        return [question.id, { score: Math.max(0, Math.min(question.max, Number(value?.score) || 0)), note: typeof value?.note === "string" ? value.note : "" }];
+      })));
+      setAssessmentId(imported.assessmentId || crypto.randomUUID());
+      setClient(imported.client.trim());
+      setSpecialist(typeof imported.specialist === "string" ? imported.specialist : "Não informado");
+      setAnswers(normalizedAnswers);
+      setSoftware(Array.isArray(imported.software) && imported.software.length ? imported.software.map((entry) => ({ ...entry, id: entry.id || crypto.randomUUID(), checking: false, error: undefined })) : [{ id: crypto.randomUUID(), server: "", site: "", version: "", checking: false }]);
+      setVulnerabilities(Array.isArray(imported.vulnerabilities) ? imported.vulnerabilities : []);
+      setExcludedFindingIds(Array.isArray(imported.excludedFindingIds) ? imported.excludedFindingIds.filter((id) => typeof id === "string") : []);
+      setView("overview");
+      setActivePillar(0);
+      setAssessmentStarted(true);
+      setSaved(true);
+    } catch {
+      setImportError("Não foi possível importar este arquivo. Selecione um JSON gerado pelo XTR Assessment.");
+    }
+  };
 
   const updateAnswer = (id: string, patch: Partial<AnswerState[string]>) => {
     setAnswers((current) => ({ ...current, [id]: { ...current[id], ...patch } }));
@@ -143,18 +189,35 @@ export default function Home() {
       const response = await fetch("/api/export", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ client, answers, pillarScores, totalScore, maturity: maturity.label, findings, software, vulnerabilities, excludedFindingIds }),
+        body: JSON.stringify({ client, specialist, answers, pillarScores, totalScore, maturity: maturity.label, findings, software, vulnerabilities, excludedFindingIds }),
       });
       if (!response.ok) throw new Error("export failed");
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = `XTR-Assessment-${client.replace(/[^a-z0-9]+/gi, "-")}.pptx`;
-      anchor.click();
-      URL.revokeObjectURL(url);
+      const safeClient = client.replace(/[^a-z0-9]+/gi, "-");
+      const download = (content: Blob, filename: string) => { const url = URL.createObjectURL(content); const anchor = document.createElement("a"); anchor.href = url; anchor.download = filename; document.body.appendChild(anchor); anchor.click(); anchor.remove(); window.setTimeout(() => URL.revokeObjectURL(url), 1000); };
+      download(blob, `XTR-Assessment-${safeClient}.pptx`);
+      const assessmentFile: AssessmentFile = { schemaVersion: 1, assessmentId, client, specialist, exportedAt: new Date().toISOString(), answers, software: software.map((entry) => ({ id: entry.id, server: entry.server, site: entry.site, version: entry.version, checkedAt: entry.checkedAt, identifiedProduct: entry.identifiedProduct, checking: false })), vulnerabilities, excludedFindingIds };
+      download(new Blob([JSON.stringify(assessmentFile, null, 2)], { type: "application/json" }), `XTR-Assessment-${safeClient}.json`);
     } finally { setExporting(false); }
   };
+
+  if (!assessmentStarted) return (
+    <main className="welcome-screen">
+      <section className="welcome-panel">
+        <img className="welcome-logo" src="/xtr-assessment-logo.png" alt="XTR Assessment" />
+        <span className="eyebrow">MATURIDADE EM RESILIÊNCIA DE DADOS</span>
+        <h1>Inicie ou retome um Assessment</h1>
+        <p>Crie uma nova avaliação para um cliente ou importe um arquivo JSON exportado anteriormente.</p>
+        <div className="welcome-actions">
+          <button className="welcome-option primary-option" onClick={() => { setClient(""); setSpecialist(""); setNewAssessmentOpen(true); }}><span>＋</span><div><b>Criar novo Assessment</b><small>Informe cliente e especialista responsável</small></div><i>→</i></button>
+          <label className="welcome-option import-option"><span>⇧</span><div><b>Importar Assessment</b><small>Carregue um arquivo JSON do XTR Assessment</small></div><i>→</i><input type="file" accept="application/json,.json" onChange={(event) => { void importAssessment(event.target.files?.[0]); event.target.value = ""; }} /></label>
+        </div>
+        {importError && <p className="welcome-error">{importError}</p>}
+        <div className="welcome-powered"><small>Powered by</small><img src="/xtreme-it-logo.png" alt="Xtreme IT" /></div>
+      </section>
+      {newAssessmentOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setNewAssessmentOpen(false); }}><section className="assessment-modal" role="dialog" aria-modal="true" aria-labelledby="new-assessment-title"><button className="modal-close" aria-label="Fechar" onClick={() => setNewAssessmentOpen(false)}>×</button><span className="eyebrow">NOVO ASSESSMENT</span><h2 id="new-assessment-title">Identificação da avaliação</h2><p>Essas informações acompanharão o Assessment e o arquivo de retomada.</p><label>CLIENTE<input autoFocus value={client} onChange={(event) => setClient(event.target.value)} placeholder="Nome do cliente" /></label><label>ESPECIALISTA RESPONSÁVEL<input value={specialist} onChange={(event) => setSpecialist(event.target.value)} placeholder="Nome do especialista" onKeyDown={(event) => { if (event.key === "Enter") createAssessment(); }} /></label><button className="primary modal-submit" disabled={!client.trim() || !specialist.trim()} onClick={createAssessment}>Iniciar Assessment</button></section></div>}
+    </main>
+  );
 
   return (
     <main className="app-shell">
@@ -176,7 +239,7 @@ export default function Home() {
 
         {view === "overview" && (
           <div className="page overview-page">
-            <div className="page-title"><div><span className="eyebrow">DIAGNÓSTICO ATUAL</span><h1>Maturidade em Resiliência de Dados</h1><p>Visão consolidada do nível de proteção, prontidão e governança.</p></div><label>CLIENTE<input value={client} onChange={(e) => { setClient(e.target.value); setSaved(false); }} /></label></div>
+            <div className="page-title"><div><span className="eyebrow">DIAGNÓSTICO ATUAL</span><h1>Maturidade em Resiliência de Dados</h1><p>Visão consolidada do nível de proteção, prontidão e governança.</p></div><div className="assessment-identification"><label>CLIENTE<input value={client} onChange={(e) => { setClient(e.target.value); setSaved(false); }} /></label><label>ESPECIALISTA RESPONSÁVEL<input value={specialist} onChange={(e) => { setSpecialist(e.target.value); setSaved(false); }} /></label></div></div>
             <section className="hero-grid">
               <article className="score-card glow-card">
                 <div className="score-orbit" style={{ "--score": `${totalScore}%`, "--score-color": scoreColor(totalScore) } as React.CSSProperties}><div><strong style={{ color: scoreColor(totalScore) }}>{totalScore}</strong><span>/100</span><small>PONTOS</small></div></div>
