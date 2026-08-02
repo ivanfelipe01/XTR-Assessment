@@ -3,6 +3,7 @@ import { pillars } from "../../assessment-data";
 import { addPillarDetailSlides } from "../../ppt/pillar-detail";
 import { addIsoExposureSlides } from "../../ppt/iso-exposures";
 import { addNistExposureSlides } from "../../ppt/nist-exposures";
+import { addLgpdExposureSlides } from "../../ppt/lgpd-exposures";
 import { addVulnerabilitySummarySlides, type SoftwareForExport, type VulnerabilityForExport } from "../../ppt/vulnerability-summary";
 import coverReference from "../../assets/ppt-cover-reference.jpg?inline";
 import objectiveReference from "../../assets/ppt-objective-reference.jpg?inline";
@@ -123,9 +124,7 @@ export async function POST(request: Request) {
   slide = pptx.addSlide();
   slide.background = { color: "000000" };
   slide.addImage({ data: lgpdFindingsDivider, x: 0, y: 0, w: 13.334, h: 7.5 });
-  slide = pptx.addSlide();
-  slide.background = { color: "000000" };
-  slide.addImage({ data: lgpdExposuresDivider, x: 0, y: 0, w: 13.334, h: 7.5 });
+  addLgpdExposureSlides(pptx, data.answers ?? {}, data.vulnerabilities ?? [], lgpdExposuresDivider);
   const output = await pptx.write({ outputType: "arraybuffer" });
   return new Response(output as ArrayBuffer, { headers: { "content-type": "application/vnd.openxmlformats-officedocument.presentationml.presentation", "content-disposition": `attachment; filename="XTR-Assessment.pptx"` } });
 }
