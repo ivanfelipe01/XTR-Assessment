@@ -24,6 +24,7 @@ import iso27001ExposuresDivider from "../../assets/ppt-iso-27001-exposures-divid
 import isoExposuresBackground from "../../assets/ppt-iso-exposures-background.jpg?inline";
 import nistExposuresDivider from "../../assets/ppt-nist-exposures-divider.jpg?inline";
 import nistExposuresBackground from "../../assets/ppt-nist-exposures-background.jpg?inline";
+import lgpdExposuresDivider from "../../assets/ppt-lgpd-exposures-divider.jpg?inline";
 import xtremeItLogo from "../../assets/xtreme-it-logo.png?inline";
 
 type ExportPayload = { client: string; answers: Record<string, { score: number; note: string }>; pillarScores: number[]; totalScore: number; maturity: string; findings: Array<{ pillar: { name: string }; question: { title: string; iso: string; nist: string; lgpd: string }; score: number }>; software?: SoftwareForExport[]; vulnerabilities?: VulnerabilityForExport[] };
@@ -118,6 +119,9 @@ export async function POST(request: Request) {
   slide.background = { color: "000000" };
   slide.addImage({ data: nistExposuresDivider, x: 0, y: 0, w: 13.334, h: 7.5 });
   addNistExposureSlides(pptx, data.answers ?? {}, data.vulnerabilities ?? [], nistExposuresBackground);
+  slide = pptx.addSlide();
+  slide.background = { color: "000000" };
+  slide.addImage({ data: lgpdExposuresDivider, x: 0, y: 0, w: 13.334, h: 7.5 });
   const output = await pptx.write({ outputType: "arraybuffer" });
   return new Response(output as ArrayBuffer, { headers: { "content-type": "application/vnd.openxmlformats-officedocument.presentationml.presentation", "content-disposition": `attachment; filename="XTR-Assessment.pptx"` } });
 }
