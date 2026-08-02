@@ -36,18 +36,35 @@ const controlCross: Record<string, string> = {
 
 const clean = (value: unknown, fallback = "") => typeof value === "string" && value.trim() ? value.trim() : fallback;
 const score = (value: unknown, max: number) => Math.max(0, Math.min(max, Number.isFinite(Number(value)) ? Number(value) : 0));
+const commentControlRules = [
+  [/mfa|rbac|sso|acesso|privil[eé]gio|credencial|dom[ií]nio/i, ["A.5.15", "A.5.17", "A.5.18"]],
+  [/criptograf|tls|cifra/i, ["A.8.24"]],
+  [/rede|segment|segreg|vlan/i, ["A.8.20", "A.8.22"]],
+  [/patch|upgrade|vers[aã]o|cve|vulnerabil/i, ["A.8.8", "A.8.9"]],
+  [/restore|restaura|recupera|teste/i, ["A.8.13", "A.5.29", "A.5.30"]],
+  [/monitor|alerta|observab|log|auditor/i, ["A.8.15", "A.8.16"]],
+  [/air.?gap|cofre|imutab/i, ["A.8.13", "A.8.22"]],
+  [/runbook|documenta|incidente|crise/i, ["A.5.24", "A.5.29", "A.5.30"]],
+] as const;
+function controlsWithComment(base: string, comment: string) {
+  const controls = new Set(base.split("\n").filter(Boolean));
+  commentControlRules.forEach(([pattern, additions]) => { if (pattern.test(comment)) additions.forEach((item) => controls.add(item)); });
+  return [...controls].join("\n");
+}
 
-function buildExposures(answers: Answers, vulnerabilities: VulnerabilityForExport[]) {
+function buildExposures(answers: Answers, vulnerabilities: VulnerabilityForExport[], excludedFindingIds: string[]) {
   const rows: IsoExposure[] = [];
+  const excluded = new Set(excludedFindingIds);
   pillars.forEach((pillar) => pillar.questions.forEach((question) => {
+    if (excluded.has(question.id)) return;
     const current = score(answers[question.id]?.score, question.max);
     if (current >= question.max) return;
     const evidence = clean(answers[question.id]?.note);
     const status = current <= 0 ? "Controle não atendido" : `Controle parcialmente atendido (${current}/${question.max})`;
     rows.push({
       gap: `${question.title}\n${status}${evidence ? ` · Evidência: ${evidence}` : " · Evidência não informada"}`,
-      controls: controlCross[question.id] ?? question.iso,
-      exposure: question.risk,
+      controls: controlsWithComment(controlCross[question.id] ?? question.iso, evidence),
+      exposure: `${question.risk}${evidence ? ` Contexto considerado no cruzamento: ${evidence}` : ""}`,
     });
   }));
 
@@ -97,8 +114,8 @@ function addRow(slide: pptxgen.Slide, row: IsoExposure, number: number, y: numbe
   slide.addText(row.exposure, { x: 6.38, y: y + .16, w: 6.26, h: h - .3, fontFace: "Arial", fontSize: 7.2, bold: true, color: T.muted, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
 }
 
-export function addIsoExposureSlides(pptx: pptxgen, answers: Answers, vulnerabilities: VulnerabilityForExport[], background: string) {
-  const rows = buildExposures(answers ?? {}, vulnerabilities ?? []);
+export function addIsoExposureSlides(pptx: pptxgen, answers: Answers, vulnerabilities: VulnerabilityForExport[], background: string, excludedFindingIds: string[] = []) {
+  const rows = buildExposures(answers ?? {}, vulnerabilities ?? [], excludedFindingIds);
   const pageSize = 4;
   const pages = Array.from({ length: Math.ceil(rows.length / pageSize) }, (_, index) => rows.slice(index * pageSize, (index + 1) * pageSize));
   pages.forEach((pageRows, pageIndex) => {

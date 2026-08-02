@@ -54,6 +54,7 @@ export default function Home() {
   const [activePillar, setActivePillar] = useState(0);
   const [software, setSoftware] = useState<SoftwareEntry[]>([{ id: crypto.randomUUID(), server: "", site: "", version: "", checking: false }]);
   const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
+  const [excludedFindingIds, setExcludedFindingIds] = useState<string[]>([]);
   const [saved, setSaved] = useState(true);
   const [exporting, setExporting] = useState(false);
 
@@ -63,10 +64,11 @@ export default function Home() {
   );
   const totalScore = pillarScores.reduce((sum, score) => sum + score, 0);
   const maturity = maturityForScore(totalScore);
-  const findings = useMemo(
+  const allFindings = useMemo(
     () => pillars.flatMap((pillar) => pillar.questions.filter((q) => (answers[q.id]?.score ?? 0) < q.max).map((q) => ({ pillar, question: q, score: answers[q.id]?.score ?? 0 }))),
     [answers],
   );
+  const findings = useMemo(() => allFindings.filter(({ question }) => !excludedFindingIds.includes(question.id)), [allFindings, excludedFindingIds]);
   const findingCount = findings.length + vulnerabilities.length;
 
   useEffect(() => {
@@ -76,16 +78,27 @@ export default function Home() {
         await fetch("/api/assessments", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ id: "current", client, answers: { answers, software, vulnerabilities }, score: totalScore, maturity: maturity.label }),
+          body: JSON.stringify({ id: "current", client, answers: { answers, software, vulnerabilities, excludedFindingIds }, score: totalScore, maturity: maturity.label }),
         });
         setSaved(true);
       } catch { /* stays as a draft in the current session */ }
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [answers, client, maturity.label, saved, software, totalScore, vulnerabilities]);
+  }, [answers, client, excludedFindingIds, maturity.label, saved, software, totalScore, vulnerabilities]);
 
   const updateAnswer = (id: string, patch: Partial<AnswerState[string]>) => {
     setAnswers((current) => ({ ...current, [id]: { ...current[id], ...patch } }));
+    setExcludedFindingIds((current) => current.filter((findingId) => findingId !== id));
+    setSaved(false);
+  };
+
+  const deleteFinding = (id: string) => {
+    setExcludedFindingIds((current) => current.includes(id) ? current : [...current, id]);
+    setSaved(false);
+  };
+
+  const deleteVulnerability = (serverId: string, id: string) => {
+    setVulnerabilities((current) => current.filter((item) => !(item.serverId === serverId && item.id === id)));
     setSaved(false);
   };
 
@@ -130,7 +143,7 @@ export default function Home() {
       const response = await fetch("/api/export", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ client, answers, pillarScores, totalScore, maturity: maturity.label, findings, software, vulnerabilities }),
+        body: JSON.stringify({ client, answers, pillarScores, totalScore, maturity: maturity.label, findings, software, vulnerabilities, excludedFindingIds }),
       });
       if (!response.ok) throw new Error("export failed");
       const blob = await response.blob();
@@ -185,7 +198,7 @@ export default function Home() {
         )}
 
         {view === "findings" && (
-          <div className="page"><div className="page-title"><div><span className="eyebrow">EXPOSIÇÕES E RISCOS</span><h1>Achados priorizados</h1><p>Cruzamento técnico com ISO/IEC 27001, NIST CSF 2.0, LGPD e NVD.</p></div><div className="stat-pill"><strong>{findingCount}</strong><span>achados<br />ativos</span></div></div>{vulnerabilities.length > 0 && <section className="vulnerability-findings"><div className="section-head"><div><span>VULNERABILIDADES DE SOFTWARE</span><h3>CVEs e riscos mapeados para a versão instalada</h3></div><em>{vulnerabilities.length} CVEs</em></div>{vulnerabilities.map((vuln) => <a href={vuln.url} target="_blank" rel="noreferrer" className="vulnerability-row" key={`${vuln.serverId}-${vuln.id}`}><div><strong>{vuln.id}</strong><span>{vuln.identifiedProduct || vuln.server}{vuln.site ? ` · Site: ${vuln.site}` : ""} · {vuln.version}</span></div><div className="vulnerability-risk"><b>RISCO MAPEADO</b><strong>{vuln.risk}</strong><p>{vuln.description}</p></div><em className={vuln.severity === "CRITICAL" || vuln.severity === "HIGH" ? "critical" : "medium"}>{vuln.severity}{vuln.score ? ` · ${vuln.score}` : ""}</em><small>{vuln.matchStatus}</small></a>)}</section>}<div className="findings-table"><div className="table-head"><span>ACHADO</span><span>CRITICIDADE</span><span>ISO 27001</span><span>NIST</span><span>LGPD</span></div>{findings.map(({ pillar, question, score }, index) => <div className="table-row" key={question.id}><span><i>{String(index + 1).padStart(2, "0")}</i><div><b>{question.title}</b><small>{pillar.name} · {score}/{question.max} pontos</small></div></span><em className={score === 0 ? "critical" : "medium"}>{score === 0 ? "CRÍTICA" : "MÉDIA"}</em><code>{question.iso}</code><code>{question.nist}</code><code>{question.lgpd}</code></div>)}</div></div>
+          <div className="page findings-page"><div className="page-title"><div><span className="eyebrow">EXPOSIÇÕES E RISCOS</span><h1>Achados priorizados</h1><p>Cruzamento técnico com ISO/IEC 27001, NIST CSF 2.0, LGPD e NVD, considerando também os comentários e evidências do questionário.</p></div><div className="stat-pill"><strong>{findingCount}</strong><span>achados<br />ativos</span></div></div>{vulnerabilities.length > 0 && <section className="vulnerability-findings"><div className="section-head"><div><span>VULNERABILIDADES DE SOFTWARE</span><h3>CVEs e riscos mapeados para a versão instalada</h3></div><em>{vulnerabilities.length} CVEs</em></div>{vulnerabilities.map((vuln) => <div className="vulnerability-row" key={`${vuln.serverId}-${vuln.id}`}><a href={vuln.url} target="_blank" rel="noreferrer" className="vulnerability-content"><div><strong>{vuln.id}</strong><span>{vuln.identifiedProduct || vuln.server}{vuln.site ? ` · Site: ${vuln.site}` : ""} · {vuln.version}</span></div><div className="vulnerability-risk"><b>RISCO MAPEADO</b><strong>{vuln.risk}</strong><p>{vuln.description}</p></div><em className={vuln.severity === "CRITICAL" || vuln.severity === "HIGH" ? "critical" : "medium"}>{vuln.severity}{vuln.score ? ` · ${vuln.score}` : ""}</em><small>{vuln.matchStatus}</small></a><button className="delete-finding" onClick={() => deleteVulnerability(vuln.serverId, vuln.id)}>Excluir</button></div>)}</section>}<div className="findings-table"><div className="table-head"><span>ACHADO</span><span>CRITICIDADE</span><span>ISO 27001</span><span>NIST</span><span>LGPD</span><span>AÇÃO</span></div>{findings.map(({ pillar, question, score }, index) => <div className="table-row" key={question.id}><span><i>{String(index + 1).padStart(2, "0")}</i><div><b>{question.title}</b><small>{pillar.name} · {score}/{question.max} pontos</small>{answers[question.id]?.note?.trim() && <small className="finding-evidence">Comentário/Evidência: {answers[question.id].note.trim()}</small>}</div></span><em className={score === 0 ? "critical" : "medium"}>{score === 0 ? "CRÍTICA" : "MÉDIA"}</em><code>{question.iso}</code><code>{question.nist}</code><code>{question.lgpd}</code><button className="delete-finding" onClick={() => deleteFinding(question.id)}>Excluir</button></div>)}</div></div>
         )}
 
       </section>
