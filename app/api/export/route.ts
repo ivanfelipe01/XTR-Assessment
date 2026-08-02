@@ -1,6 +1,7 @@
 import pptxgen from "pptxgenjs";
 import { pillars } from "../../assessment-data";
 import { addPillarDetailSlides } from "../../ppt/pillar-detail";
+import { addIsoExposureSlides } from "../../ppt/iso-exposures";
 import { addVulnerabilitySummarySlides, type SoftwareForExport, type VulnerabilityForExport } from "../../ppt/vulnerability-summary";
 import coverReference from "../../assets/ppt-cover-reference.jpg?inline";
 import objectiveReference from "../../assets/ppt-objective-reference.jpg?inline";
@@ -19,6 +20,7 @@ import governanceManagementReference from "../../assets/ppt-governance-managemen
 import vulnerabilitiesCriminalsDivider from "../../assets/ppt-vulnerabilities-criminals-divider.jpg?inline";
 import vulnerabilityAnalysisBackground from "../../assets/ppt-vulnerability-analysis-background.jpg?inline";
 import iso27001ExposuresDivider from "../../assets/ppt-iso-27001-exposures-divider.jpg?inline";
+import isoExposuresBackground from "../../assets/ppt-iso-exposures-background.jpg?inline";
 import xtremeItLogo from "../../assets/xtreme-it-logo.png?inline";
 
 type ExportPayload = { client: string; answers: Record<string, { score: number; note: string }>; pillarScores: number[]; totalScore: number; maturity: string; findings: Array<{ pillar: { name: string }; question: { title: string; iso: string; nist: string; lgpd: string }; score: number }>; software?: SoftwareForExport[]; vulnerabilities?: VulnerabilityForExport[] };
@@ -108,6 +110,7 @@ export async function POST(request: Request) {
   slide = pptx.addSlide();
   slide.background = { color: "000000" };
   slide.addImage({ data: iso27001ExposuresDivider, x: 0, y: 0, w: 13.334, h: 7.5 });
+  addIsoExposureSlides(pptx, data.answers ?? {}, data.vulnerabilities ?? [], isoExposuresBackground);
   const output = await pptx.write({ outputType: "arraybuffer" });
   return new Response(output as ArrayBuffer, { headers: { "content-type": "application/vnd.openxmlformats-officedocument.presentationml.presentation", "content-disposition": `attachment; filename="XTR-Assessment.pptx"` } });
 }
