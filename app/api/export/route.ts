@@ -32,8 +32,9 @@ import nextStepsBlank from "../../assets/ppt-next-steps-blank.jpg?inline";
 import continuityClosing from "../../assets/ppt-continuity-closing.jpg?inline";
 import xtremeItClosing from "../../assets/ppt-xtreme-it-closing.jpg?inline";
 import xtremeItLogo from "../../assets/xtreme-it-logo.png?inline";
+import type { AssessmentObservation } from "../../observation-mapping";
 
-type ExportPayload = { client: string; answers: Record<string, { score: number; note: string }>; pillarScores: number[]; totalScore: number; maturity: string; findings: Array<{ pillar: { name: string }; question: { title: string; iso: string; nist: string; lgpd: string }; score: number }>; software?: SoftwareForExport[]; vulnerabilities?: VulnerabilityForExport[]; excludedFindingIds?: string[] };
+type ExportPayload = { client: string; answers: Record<string, { score: number; note: string }>; pillarScores: number[]; totalScore: number; maturity: string; findings: Array<{ pillar: { name: string }; question: { title: string; iso: string; nist: string; lgpd: string }; score: number }>; software?: SoftwareForExport[]; vulnerabilities?: VulnerabilityForExport[]; observations?: AssessmentObservation[]; excludedFindingIds?: string[] };
 
 const C = { bg: "05070D", panel: "111521", cyan: "1DDBE0", magenta: "EC39CB", white: "F5F7FB", muted: "8791A5", line: "283047", danger: "FF4D68" };
 function title(slide: pptxgen.Slide, heading: string, sub = "") { slide.background = { color: C.bg }; slide.addText("XTREME IT", { x: .45, y: .24, w: 1.2, h: .2, fontFace: "Arial", fontSize: 8, bold: true, color: C.white }); slide.addText(heading, { x: .55, y: .62, w: 11.8, h: .42, fontFace: "Arial", fontSize: 23, bold: true, color: C.white, breakLine: false }); if (sub) slide.addText(sub, { x: .55, y: 1.04, w: 11.6, h: .22, fontFace: "Arial", fontSize: 8, color: C.muted }); slide.addShape("line", { x: .55, y: 1.34, w: 12.1, h: 0, line: { color: C.line, width: 1 } }); }
@@ -120,15 +121,15 @@ export async function POST(request: Request) {
   slide = pptx.addSlide();
   slide.background = { color: "000000" };
   slide.addImage({ data: iso27001ExposuresDivider, x: 0, y: 0, w: 13.334, h: 7.5 });
-  addIsoExposureSlides(pptx, data.answers ?? {}, data.vulnerabilities ?? [], isoExposuresBackground, data.excludedFindingIds ?? []);
+  addIsoExposureSlides(pptx, data.answers ?? {}, data.vulnerabilities ?? [], isoExposuresBackground, data.excludedFindingIds ?? [], data.observations ?? []);
   slide = pptx.addSlide();
   slide.background = { color: "000000" };
   slide.addImage({ data: nistExposuresDivider, x: 0, y: 0, w: 13.334, h: 7.5 });
-  addNistExposureSlides(pptx, data.answers ?? {}, data.vulnerabilities ?? [], nistExposuresBackground, data.excludedFindingIds ?? []);
+  addNistExposureSlides(pptx, data.answers ?? {}, data.vulnerabilities ?? [], nistExposuresBackground, data.excludedFindingIds ?? [], data.observations ?? []);
   slide = pptx.addSlide();
   slide.background = { color: "000000" };
   slide.addImage({ data: lgpdFindingsDivider, x: 0, y: 0, w: 13.334, h: 7.5 });
-  addLgpdExposureSlides(pptx, data.answers ?? {}, data.vulnerabilities ?? [], lgpdExposuresDivider, data.excludedFindingIds ?? []);
+  addLgpdExposureSlides(pptx, data.answers ?? {}, data.vulnerabilities ?? [], lgpdExposuresDivider, data.excludedFindingIds ?? [], data.observations ?? []);
   slide = pptx.addSlide();
   slide.background = { color: "000000" };
   slide.addImage({ data: conclusionsDivider, x: 0, y: 0, w: 13.334, h: 7.5 });

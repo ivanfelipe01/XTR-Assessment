@@ -1,6 +1,7 @@
 import pptxgen from "pptxgenjs";
 import { pillars } from "../assessment-data";
 import type { VulnerabilityForExport } from "./vulnerability-summary";
+import { mapObservation, observationFindingId, type AssessmentObservation } from "../observation-mapping";
 
 type Answer = { score: number; note: string };
 type Answers = Record<string, Answer>;
@@ -47,7 +48,7 @@ function controlsWithComment(base: string, comment: string) {
   return [...controls].join("\n");
 }
 
-function buildExposures(answers: Answers, vulnerabilities: VulnerabilityForExport[], excludedFindingIds: string[]) {
+function buildExposures(answers: Answers, vulnerabilities: VulnerabilityForExport[], observations: AssessmentObservation[], excludedFindingIds: string[]) {
   const rows: NistExposure[] = [];
   const excluded = new Set(excludedFindingIds);
   pillars.forEach((pillar) => pillar.questions.forEach((question) => {
@@ -62,6 +63,12 @@ function buildExposures(answers: Answers, vulnerabilities: VulnerabilityForExpor
       exposure: `${question.risk}${evidence ? ` Contexto considerado no cruzamento: ${evidence}` : ""}`,
     });
   }));
+
+  observations.forEach((observation) => {
+    if (!clean(observation.text) || excluded.has(observationFindingId(observation.id))) return;
+    const mapping = mapObservation(observation.text);
+    rows.push({ gap: `Observação registrada no Assessment\n${clean(observation.text)}`, controls: mapping.nist, exposure: mapping.exposure });
+  });
 
   const groups = new Map<string, VulnerabilityForExport[]>();
   vulnerabilities.forEach((vulnerability) => {
@@ -109,8 +116,8 @@ function addRow(slide: pptxgen.Slide, row: NistExposure, number: number, y: numb
   slide.addText(row.exposure, { x: 6.38, y: y + .16, w: 6.26, h: h - .3, fontFace: "Arial", fontSize: 7.2, bold: true, color: T.muted, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
 }
 
-export function addNistExposureSlides(pptx: pptxgen, answers: Answers, vulnerabilities: VulnerabilityForExport[], background: string, excludedFindingIds: string[] = []) {
-  const rows = buildExposures(answers ?? {}, vulnerabilities ?? [], excludedFindingIds);
+export function addNistExposureSlides(pptx: pptxgen, answers: Answers, vulnerabilities: VulnerabilityForExport[], background: string, excludedFindingIds: string[] = [], observations: AssessmentObservation[] = []) {
+  const rows = buildExposures(answers ?? {}, vulnerabilities ?? [], observations ?? [], excludedFindingIds);
   const pageSize = 4;
   const pages = Array.from({ length: Math.ceil(rows.length / pageSize) }, (_, index) => rows.slice(index * pageSize, (index + 1) * pageSize));
   pages.forEach((pageRows, pageIndex) => {

@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { pillars, maturityForScore, type Pillar } from "./assessment-data";
+import { mapObservation, observationFindingId, type AssessmentObservation } from "./observation-mapping";
 
 type View = "overview" | "questionnaire" | "findings";
 type AnswerState = Record<string, { score: number; note: string }>;
 type Vulnerability = { id: string; severity: string; score: number | null; description: string; risk: string; url: string; matchStatus: string; serverId: string; server: string; site: string; version: string; identifiedProduct?: string };
 type SoftwareEntry = { id: string; server: string; site: string; version: string; checking: boolean; checkedAt?: string; error?: string; identifiedProduct?: string };
-type AssessmentFile = { schemaVersion?: number; assessmentId?: string; client?: string; specialist?: string; exportedAt?: string; answers?: AnswerState; software?: SoftwareEntry[]; vulnerabilities?: Vulnerability[]; excludedFindingIds?: string[] };
+type AssessmentFile = { schemaVersion?: number; assessmentId?: string; client?: string; specialist?: string; exportedAt?: string; answers?: AnswerState; software?: SoftwareEntry[]; vulnerabilities?: Vulnerability[]; observations?: AssessmentObservation[]; excludedFindingIds?: string[] };
 
 const demoAnswers: AnswerState = Object.fromEntries(
   pillars.flatMap((pillar) =>
@@ -60,6 +61,7 @@ export default function Home() {
   const [activePillar, setActivePillar] = useState(0);
   const [software, setSoftware] = useState<SoftwareEntry[]>([{ id: crypto.randomUUID(), server: "", site: "", version: "", checking: false }]);
   const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
+  const [observations, setObservations] = useState<AssessmentObservation[]>([]);
   const [excludedFindingIds, setExcludedFindingIds] = useState<string[]>([]);
   const [saved, setSaved] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -75,7 +77,8 @@ export default function Home() {
     [answers],
   );
   const findings = useMemo(() => allFindings.filter(({ question }) => !excludedFindingIds.includes(question.id)), [allFindings, excludedFindingIds]);
-  const findingCount = findings.length + vulnerabilities.length;
+  const activeObservationFindings = useMemo(() => observations.filter((observation) => observation.text.trim() && !excludedFindingIds.includes(observationFindingId(observation.id))), [excludedFindingIds, observations]);
+  const findingCount = findings.length + vulnerabilities.length + activeObservationFindings.length;
 
   useEffect(() => {
     if (saved) return;
@@ -84,13 +87,13 @@ export default function Home() {
         await fetch("/api/assessments", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ id: assessmentId, client, answers: { specialist, answers, software, vulnerabilities, excludedFindingIds }, score: totalScore, maturity: maturity.label }),
+          body: JSON.stringify({ id: assessmentId, client, answers: { specialist, answers, software, vulnerabilities, observations, excludedFindingIds }, score: totalScore, maturity: maturity.label }),
         });
         setSaved(true);
       } catch { /* stays as a draft in the current session */ }
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [answers, assessmentId, client, excludedFindingIds, maturity.label, saved, software, specialist, totalScore, vulnerabilities]);
+  }, [answers, assessmentId, client, excludedFindingIds, maturity.label, observations, saved, software, specialist, totalScore, vulnerabilities]);
 
   const createAssessment = () => {
     if (!client.trim() || !specialist.trim()) return;
@@ -98,6 +101,7 @@ export default function Home() {
     setAnswers(emptyAnswers);
     setSoftware([{ id: crypto.randomUUID(), server: "", site: "", version: "", checking: false }]);
     setVulnerabilities([]);
+    setObservations([]);
     setExcludedFindingIds([]);
     setView("overview");
     setActivePillar(0);
@@ -122,6 +126,7 @@ export default function Home() {
       setAnswers(normalizedAnswers);
       setSoftware(Array.isArray(imported.software) && imported.software.length ? imported.software.map((entry) => ({ ...entry, id: entry.id || crypto.randomUUID(), checking: false, error: undefined })) : [{ id: crypto.randomUUID(), server: "", site: "", version: "", checking: false }]);
       setVulnerabilities(Array.isArray(imported.vulnerabilities) ? imported.vulnerabilities : []);
+      setObservations(Array.isArray(imported.observations) ? imported.observations.filter((item) => item && typeof item.id === "string" && typeof item.text === "string") : []);
       setExcludedFindingIds(Array.isArray(imported.excludedFindingIds) ? imported.excludedFindingIds.filter((id) => typeof id === "string") : []);
       setView("overview");
       setActivePillar(0);
@@ -147,6 +152,10 @@ export default function Home() {
     setVulnerabilities((current) => current.filter((item) => !(item.serverId === serverId && item.id === id)));
     setSaved(false);
   };
+
+  const addObservation = () => { setObservations((current) => [...current, { id: crypto.randomUUID(), text: "" }]); setSaved(false); };
+  const updateObservation = (id: string, text: string) => { setObservations((current) => current.map((item) => item.id === id ? { ...item, text } : item)); setExcludedFindingIds((current) => current.filter((findingId) => findingId !== observationFindingId(id))); setSaved(false); };
+  const deleteObservation = (id: string) => { setObservations((current) => current.filter((item) => item.id !== id)); setExcludedFindingIds((current) => current.filter((findingId) => findingId !== observationFindingId(id))); setSaved(false); };
 
   const updateSoftware = (id: string, patch: Partial<SoftwareEntry>) => {
     setSoftware((current) => current.map((item) => item.id === id ? { ...item, ...patch, error: undefined } : item));
@@ -189,14 +198,14 @@ export default function Home() {
       const response = await fetch("/api/export", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ client, specialist, answers, pillarScores, totalScore, maturity: maturity.label, findings, software, vulnerabilities, excludedFindingIds }),
+        body: JSON.stringify({ client, specialist, answers, pillarScores, totalScore, maturity: maturity.label, findings, software, vulnerabilities, observations, excludedFindingIds }),
       });
       if (!response.ok) throw new Error("export failed");
       const blob = await response.blob();
       const safeClient = client.replace(/[^a-z0-9]+/gi, "-");
       const download = (content: Blob, filename: string) => { const url = URL.createObjectURL(content); const anchor = document.createElement("a"); anchor.href = url; anchor.download = filename; document.body.appendChild(anchor); anchor.click(); anchor.remove(); window.setTimeout(() => URL.revokeObjectURL(url), 1000); };
       download(blob, `XTR-Assessment-${safeClient}.pptx`);
-      const assessmentFile: AssessmentFile = { schemaVersion: 1, assessmentId, client, specialist, exportedAt: new Date().toISOString(), answers, software: software.map((entry) => ({ id: entry.id, server: entry.server, site: entry.site, version: entry.version, checkedAt: entry.checkedAt, identifiedProduct: entry.identifiedProduct, checking: false })), vulnerabilities, excludedFindingIds };
+      const assessmentFile: AssessmentFile = { schemaVersion: 1, assessmentId, client, specialist, exportedAt: new Date().toISOString(), answers, software: software.map((entry) => ({ id: entry.id, server: entry.server, site: entry.site, version: entry.version, checkedAt: entry.checkedAt, identifiedProduct: entry.identifiedProduct, checking: false })), vulnerabilities, observations, excludedFindingIds };
       download(new Blob([JSON.stringify(assessmentFile, null, 2)], { type: "application/json" }), `XTR-Assessment-${safeClient}.json`);
     } finally { setExporting(false); }
   };
@@ -255,13 +264,13 @@ export default function Home() {
         {view === "questionnaire" && (
           <div className="page questionnaire-page">
             <div className="page-title"><div><span className="eyebrow">QUESTIONÁRIO BASE</span><h1>Avaliação por pilar</h1><p>Registre a pontuação e as evidências observadas no ambiente.</p></div><div className="progress-ring">{totalScore}<small>/100</small></div></div>
-            <div className="pillar-tabs six-tabs" role="tablist">{pillars.map((pillar, index) => <button key={pillar.id} className={activePillar === index ? "active" : ""} onClick={() => setActivePillar(index)} style={{ "--pillar": pillar.color } as React.CSSProperties}><span>{pillar.icon}</span><div><small>PILAR {index + 1}</small><b>{pillar.name}</b></div><em>{pillarScores[index]}/20</em></button>)}<button className={activePillar === 5 ? "active software-tab" : "software-tab"} onClick={() => setActivePillar(5)} style={{ "--pillar": "#1ddbe0" } as React.CSSProperties}><span>▣</span><div><small>INVENTÁRIO</small><b>Versões de Software</b></div><em>{software.length}</em></button></div>
-            {activePillar < 5 ? <QuestionList pillar={pillars[activePillar]} answers={answers} updateAnswer={updateAnswer} /> : <SoftwareVersions entries={software} vulnerabilities={vulnerabilities} update={updateSoftware} add={addSoftware} remove={removeSoftware} check={checkVulnerabilities} />}
+            <div className="pillar-tabs seven-tabs" role="tablist">{pillars.map((pillar, index) => <button key={pillar.id} className={activePillar === index ? "active" : ""} onClick={() => setActivePillar(index)} style={{ "--pillar": pillar.color } as React.CSSProperties}><span>{pillar.icon}</span><div><small>PILAR {index + 1}</small><b>{pillar.name}</b></div><em>{pillarScores[index]}/20</em></button>)}<button className={activePillar === 5 ? "active software-tab" : "software-tab"} onClick={() => setActivePillar(5)} style={{ "--pillar": "#1ddbe0" } as React.CSSProperties}><span>▣</span><div><small>INVENTÁRIO</small><b>Versões de Software</b></div><em>{software.length}</em></button><button className={activePillar === 6 ? "active observation-tab" : "observation-tab"} onClick={() => setActivePillar(6)} style={{ "--pillar": "#ec39cb" } as React.CSSProperties}><span>✎</span><div><small>REGISTRO LIVRE</small><b>Observações</b></div><em>{observations.length}</em></button></div>
+            {activePillar < 5 ? <QuestionList pillar={pillars[activePillar]} answers={answers} updateAnswer={updateAnswer} /> : activePillar === 5 ? <SoftwareVersions entries={software} vulnerabilities={vulnerabilities} update={updateSoftware} add={addSoftware} remove={removeSoftware} check={checkVulnerabilities} /> : <Observations observations={observations} add={addObservation} update={updateObservation} remove={deleteObservation} />}
           </div>
         )}
 
         {view === "findings" && (
-          <div className="page findings-page"><div className="page-title"><div><span className="eyebrow">EXPOSIÇÕES E RISCOS</span><h1>Achados priorizados</h1><p>Cruzamento técnico com ISO/IEC 27001, NIST CSF 2.0, LGPD e NVD, considerando também os comentários e evidências do questionário.</p></div><div className="stat-pill"><strong>{findingCount}</strong><span>achados<br />ativos</span></div></div>{vulnerabilities.length > 0 && <section className="vulnerability-findings"><div className="section-head"><div><span>VULNERABILIDADES DE SOFTWARE</span><h3>CVEs e riscos mapeados para a versão instalada</h3></div><em>{vulnerabilities.length} CVEs</em></div>{vulnerabilities.map((vuln) => <div className="vulnerability-row" key={`${vuln.serverId}-${vuln.id}`}><div className="vulnerability-identity"><div><a href={vuln.url} target="_blank" rel="noreferrer">{vuln.id}</a><button className="delete-cve" onClick={() => deleteVulnerability(vuln.serverId, vuln.id)}>Excluir</button></div><span>{vuln.identifiedProduct || vuln.server}{vuln.site ? ` · Site: ${vuln.site}` : ""} · {vuln.version}</span></div><a href={vuln.url} target="_blank" rel="noreferrer" className="vulnerability-risk"><b>RISCO MAPEADO</b><strong>{vuln.risk}</strong><p>{vuln.description}</p></a><em className={vuln.severity === "CRITICAL" || vuln.severity === "HIGH" ? "critical" : "medium"}>{vuln.severity}{vuln.score ? ` · ${vuln.score}` : ""}</em><small>{vuln.matchStatus}</small></div>)}</section>}<div className="findings-table"><div className="table-head"><span>ACHADO</span><span>CRITICIDADE</span><span>ISO 27001</span><span>NIST</span><span>LGPD</span><span>AÇÃO</span></div>{findings.map(({ pillar, question, score }, index) => <div className="table-row" key={question.id}><span><i>{String(index + 1).padStart(2, "0")}</i><div><b>{question.title}</b><small>{pillar.name} · {score}/{question.max} pontos</small>{answers[question.id]?.note?.trim() && <small className="finding-evidence">Comentário/Evidência: {answers[question.id].note.trim()}</small>}</div></span><em className={score === 0 ? "critical" : "medium"}>{score === 0 ? "CRÍTICA" : "MÉDIA"}</em><code>{question.iso}</code><code>{question.nist}</code><code>{question.lgpd}</code><button className="delete-finding" onClick={() => deleteFinding(question.id)}>Excluir</button></div>)}</div></div>
+          <div className="page findings-page"><div className="page-title"><div><span className="eyebrow">EXPOSIÇÕES E RISCOS</span><h1>Achados priorizados</h1><p>Cruzamento técnico com ISO/IEC 27001, NIST CSF 2.0, LGPD e NVD, considerando também os comentários, evidências e observações livres.</p></div><div className="stat-pill"><strong>{findingCount}</strong><span>achados<br />ativos</span></div></div>{vulnerabilities.length > 0 && <section className="vulnerability-findings"><div className="section-head"><div><span>VULNERABILIDADES DE SOFTWARE</span><h3>CVEs e riscos mapeados para a versão instalada</h3></div><em>{vulnerabilities.length} CVEs</em></div>{vulnerabilities.map((vuln) => <div className="vulnerability-row" key={`${vuln.serverId}-${vuln.id}`}><div className="vulnerability-identity"><div><a href={vuln.url} target="_blank" rel="noreferrer">{vuln.id}</a><button className="delete-cve" onClick={() => deleteVulnerability(vuln.serverId, vuln.id)}>Excluir</button></div><span>{vuln.identifiedProduct || vuln.server}{vuln.site ? ` · Site: ${vuln.site}` : ""} · {vuln.version}</span></div><a href={vuln.url} target="_blank" rel="noreferrer" className="vulnerability-risk"><b>RISCO MAPEADO</b><strong>{vuln.risk}</strong><p>{vuln.description}</p></a><em className={vuln.severity === "CRITICAL" || vuln.severity === "HIGH" ? "critical" : "medium"}>{vuln.severity}{vuln.score ? ` · ${vuln.score}` : ""}</em><small>{vuln.matchStatus}</small></div>)}</section>}<div className="findings-table"><div className="table-head"><span>ACHADO</span><span>CRITICIDADE</span><span>ISO 27001</span><span>NIST</span><span>LGPD</span><span>AÇÃO</span></div>{findings.map(({ pillar, question, score }, index) => <div className="table-row" key={question.id}><span><i>{String(index + 1).padStart(2, "0")}</i><div><b>{question.title}</b><small>{pillar.name} · {score}/{question.max} pontos</small>{answers[question.id]?.note?.trim() && <small className="finding-evidence">Comentário/Evidência: {answers[question.id].note.trim()}</small>}</div></span><em className={score === 0 ? "critical" : "medium"}>{score === 0 ? "CRÍTICA" : "MÉDIA"}</em><code>{question.iso}</code><code>{question.nist}</code><code>{question.lgpd}</code><button className="delete-finding" onClick={() => deleteFinding(question.id)}>Excluir</button></div>)}{activeObservationFindings.map((observation, index) => { const mapping = mapObservation(observation.text); return <div className="table-row observation-finding" key={observationFindingId(observation.id)}><span><i>{String(findings.length + index + 1).padStart(2, "0")}</i><div><b>Observação registrada no Assessment</b><small>Observações · Cruzamento automático indicativo</small><small className="finding-evidence">{observation.text}</small></div></span><em className="medium">ANÁLISE</em><code>{mapping.iso}</code><code>{mapping.nist}</code><code>{mapping.lgpd}</code><button className="delete-finding" onClick={() => { setExcludedFindingIds((current) => [...current, observationFindingId(observation.id)]); setSaved(false); }}>Excluir</button></div>; })}</div></div>
         )}
 
       </section>
@@ -275,4 +284,8 @@ function QuestionList({ pillar, answers, updateAnswer }: { pillar: Pillar; answe
 
 function SoftwareVersions({ entries, vulnerabilities, update, add, remove, check }: { entries: SoftwareEntry[]; vulnerabilities: Vulnerability[]; update: (id: string, patch: Partial<SoftwareEntry>) => void; add: () => void; remove: (id: string) => void; check: (entry: SoftwareEntry) => void }) {
   return <section className="software-inventory"><div className="software-intro"><div><span className="eyebrow">INVENTÁRIO DE BACKUP</span><h2>Versões de Software</h2><p>Informe o produto, a localidade do cliente e a versão instalada.</p></div><button className="primary" onClick={add}>＋ Adicionar Backup Server</button></div><div className="software-list">{entries.map((entry, index) => { const count = vulnerabilities.filter((item) => item.serverId === entry.id).length; return <article className="software-card" key={entry.id}><div className="software-index">{String(index + 1).padStart(2, "0")}</div><label>PRODUTO OU FABRICANTE<input value={entry.server} onChange={(e) => update(entry.id, { server: e.target.value, identifiedProduct: undefined })} placeholder="Ex.: Veeam" /></label><label>SITE<input value={entry.site} onChange={(e) => update(entry.id, { site: e.target.value })} placeholder="Ex.: Unidade Ribeirão Preto" /></label><label>VERSÃO / BUILD<input value={entry.version} onChange={(e) => update(entry.id, { version: e.target.value, identifiedProduct: undefined })} placeholder="Ex.: 12.3.2.3617" /></label><div className="software-actions"><button className="primary" onClick={() => check(entry)} disabled={entry.checking}>{entry.checking ? "Identificando produto..." : "Verificar vulnerabilidades"}</button>{entries.length > 1 && <button className="remove-button" onClick={() => remove(entry.id)}>Remover</button>}</div>{entry.error && <p className="software-error">{entry.error}</p>}{entry.checkedAt && !entry.error && <p className="software-status"><i /> Produto identificado: <b>{entry.identifiedProduct || entry.server}</b>{entry.site ? <> · Site: <b>{entry.site}</b></> : null} · Consulta NVD: {entry.checkedAt} · {count} vulnerabilidade(s)</p>}</article>; })}</div><div className="nvd-note"><b>Fonte: National Vulnerability Database (NVD/NIST).</b><span>O produto é inferido pelo fabricante e pelo padrão da versão. Correspondências ambíguas não são registradas automaticamente.</span></div></section>;
+}
+
+function Observations({ observations, add, update, remove }: { observations: AssessmentObservation[]; add: () => void; update: (id: string, text: string) => void; remove: (id: string) => void }) {
+  return <section className="observations-panel"><div className="software-intro"><div><span className="eyebrow">REGISTRO COMPLEMENTAR</span><h2>Observações</h2><p>Registre condições adicionais identificadas durante o Assessment. Cada texto será cruzado com ISO/IEC 27001, NIST CSF e LGPD.</p></div><button className="primary" onClick={add}>＋ Incluir Observação</button></div>{observations.length === 0 ? <div className="observations-empty"><span>✎</span><b>Nenhuma observação registrada</b><p>Use “Incluir Observação” para documentar informações que não estejam contempladas nos pilares.</p></div> : <div className="observations-list">{observations.map((observation, index) => { const mapping = observation.text.trim() ? mapObservation(observation.text) : null; return <article className="observation-card" key={observation.id}><div className="observation-head"><span>OBSERVAÇÃO {String(index + 1).padStart(2, "0")}</span><button onClick={() => remove(observation.id)}>Excluir</button></div><textarea autoFocus={!observation.text} value={observation.text} onChange={(event) => update(observation.id, event.target.value)} placeholder="Descreva a condição, evidência, risco ou oportunidade de melhoria identificada..." />{mapping && <div className="observation-cross"><span><b>ISO/IEC 27001</b>{mapping.iso.replaceAll("\n", " · ")}</span><span><b>NIST CSF</b>{mapping.nist.replaceAll("\n", " · ")}</span><span><b>LGPD</b>{mapping.lgpd.replaceAll("\n", " · ")}</span></div>}</article>; })}</div>}<div className="nvd-note"><b>Cruzamento técnico indicativo.</b><span>As referências devem ser validadas por especialistas de segurança, compliance e jurídico antes de uma conclusão formal de não conformidade.</span></div></section>;
 }
