@@ -27,7 +27,7 @@ import nistExposuresDivider from "../../assets/ppt-nist-exposures-divider.jpg?in
 import nistExposuresBackground from "../../assets/ppt-nist-exposures-background.jpg?inline";
 import lgpdFindingsDivider from "../../assets/ppt-lgpd-findings-divider.jpg?inline";
 import lgpdExposuresDivider from "../../assets/ppt-lgpd-exposures-divider.jpg?inline";
-import conclusionsDivider from "../../assets/ppt-conclusions-divider.png?inline";
+import conclusionsDivider from "../../assets/ppt-conclusions-divider.jpg?inline";
 import nextStepsBlank from "../../assets/ppt-next-steps-blank.jpg?inline";
 import continuityClosing from "../../assets/ppt-continuity-closing.jpg?inline";
 import xtremeItLogo from "../../assets/xtreme-it-logo.png?inline";
