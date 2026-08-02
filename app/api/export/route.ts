@@ -28,7 +28,7 @@ import nistExposuresBackground from "../../assets/ppt-nist-exposures-background.
 import lgpdFindingsDivider from "../../assets/ppt-lgpd-findings-divider.jpg?inline";
 import lgpdExposuresDivider from "../../assets/ppt-lgpd-exposures-divider.jpg?inline";
 import conclusionsDivider from "../../assets/ppt-conclusions-divider.png?inline";
-import nextStepsBlank from "../../assets/ppt-next-steps-blank.png?inline";
+import nextStepsBlank from "../../assets/ppt-next-steps-blank.jpg?inline";
 import xtremeItLogo from "../../assets/xtreme-it-logo.png?inline";
 
 type ExportPayload = { client: string; answers: Record<string, { score: number; note: string }>; pillarScores: number[]; totalScore: number; maturity: string; findings: Array<{ pillar: { name: string }; question: { title: string; iso: string; nist: string; lgpd: string }; score: number }>; software?: SoftwareForExport[]; vulnerabilities?: VulnerabilityForExport[] };
