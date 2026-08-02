@@ -129,15 +129,18 @@ export default function Home() {
     try {
       const imported = JSON.parse(await file.text()) as AssessmentFile;
       if (!imported.client || !imported.answers || typeof imported.answers !== "object") throw new Error("Arquivo incompatível");
+      const legacyContainer = imported.answers as AnswerState & { answers?: AnswerState; isgAnswers?: AnswerState; specialist?: string };
+      const sourceAnswers = legacyContainer.answers && typeof legacyContainer.answers === "object" ? legacyContainer.answers : imported.answers;
+      const sourceIsgAnswers = imported.isgAnswers && typeof imported.isgAnswers === "object" ? imported.isgAnswers : legacyContainer.isgAnswers;
       const normalizedAnswers: AnswerState = Object.fromEntries(pillars.flatMap((pillar) => pillar.questions.map((question) => {
-        const value = imported.answers?.[question.id];
+        const value = sourceAnswers?.[question.id];
         return [question.id, { score: Math.max(0, Math.min(question.max, Number(value?.score) || 0)), note: typeof value?.note === "string" ? value.note : "" }];
       })));
       setAssessmentId(imported.assessmentId || crypto.randomUUID());
       setClient(imported.client.trim());
-      setSpecialist(typeof imported.specialist === "string" ? imported.specialist : "Não informado");
+      setSpecialist(typeof imported.specialist === "string" ? imported.specialist : typeof legacyContainer.specialist === "string" ? legacyContainer.specialist : "Não informado");
       setAnswers(normalizedAnswers);
-      const importedIsg = imported.isgAnswers && typeof imported.isgAnswers === "object" ? Object.fromEntries(pillars.flatMap((pillar) => pillar.questions.map((question) => { const value = imported.isgAnswers?.[question.id]; return [question.id, { score: Math.max(0, Math.min(question.max, Number(value?.score) || 0)), note: typeof value?.note === "string" ? value.note : "" }]; }))) : projectedAnswers(normalizedAnswers);
+      const importedIsg = sourceIsgAnswers && typeof sourceIsgAnswers === "object" ? Object.fromEntries(pillars.flatMap((pillar) => pillar.questions.map((question) => { const value = sourceIsgAnswers[question.id]; return [question.id, { score: Math.max(0, Math.min(question.max, Number(value?.score) || 0)), note: typeof value?.note === "string" ? value.note : "" }]; }))) : projectedAnswers(normalizedAnswers);
       setIsgAnswers(importedIsg);
       setSoftware(Array.isArray(imported.software) && imported.software.length ? imported.software.map((entry) => ({ ...entry, id: entry.id || crypto.randomUUID(), checking: false, error: undefined })) : [{ id: crypto.randomUUID(), server: "", site: "", version: "", checking: false }]);
       setVulnerabilities(Array.isArray(imported.vulnerabilities) ? imported.vulnerabilities : []);
