@@ -34,10 +34,11 @@ import xtremeItClosing from "../../assets/ppt-xtreme-it-closing.jpg?inline";
 import xtremeItLogo from "../../assets/xtreme-it-logo.png?inline";
 import type { AssessmentObservation } from "../../observation-mapping";
 
-type ExportPayload = { client: string; answers: Record<string, { score: number; note: string }>; pillarScores: number[]; totalScore: number; maturity: string; findings: Array<{ pillar: { name: string }; question: { title: string; iso: string; nist: string; lgpd: string }; score: number }>; software?: SoftwareForExport[]; vulnerabilities?: VulnerabilityForExport[]; observations?: AssessmentObservation[]; excludedFindingIds?: string[] };
+type ExportPayload = { client: string; answers: Record<string, { score: number; note: string }>; isgAnswers?: Record<string, { score: number; note: string }>; pillarScores: number[]; totalScore: number; maturity: string; findings: Array<{ pillar: { name: string }; question: { title: string; iso: string; nist: string; lgpd: string }; score: number }>; software?: SoftwareForExport[]; vulnerabilities?: VulnerabilityForExport[]; observations?: AssessmentObservation[]; excludedFindingIds?: string[] };
 
 const C = { bg: "05070D", panel: "111521", cyan: "1DDBE0", magenta: "EC39CB", white: "F5F7FB", muted: "8791A5", line: "283047", danger: "FF4D68" };
 function title(slide: pptxgen.Slide, heading: string, sub = "") { slide.background = { color: C.bg }; slide.addText("XTREME IT", { x: .45, y: .24, w: 1.2, h: .2, fontFace: "Arial", fontSize: 8, bold: true, color: C.white }); slide.addText(heading, { x: .55, y: .62, w: 11.8, h: .42, fontFace: "Arial", fontSize: 23, bold: true, color: C.white, breakLine: false }); if (sub) slide.addText(sub, { x: .55, y: 1.04, w: 11.6, h: .22, fontFace: "Arial", fontSize: 8, color: C.muted }); slide.addShape("line", { x: .55, y: 1.34, w: 12.1, h: 0, line: { color: C.line, width: 1 } }); }
+function maturityLabel(score: number) { return score <= 20 ? "Preocupante" : score <= 47 ? "Baixo" : score <= 61 ? "Intermediário" : score <= 74 ? "Avançado" : "Altamente Resiliente"; }
 export async function POST(request: Request) {
   const data = await request.json() as ExportPayload;
   const generatedAt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date());
@@ -136,6 +137,34 @@ export async function POST(request: Request) {
   slide = pptx.addSlide();
   slide.background = { color: "000000" };
   slide.addImage({ data: nextStepsBlank, x: 0, y: 0, w: 13.334, h: 7.5 });
+  const projectedPillarScores = pillars.map((pillar) => pillar.questions.reduce((sum, question) => sum + Math.max(0, Math.min(question.max, data.isgAnswers?.[question.id]?.score ?? data.answers?.[question.id]?.score ?? 0)), 0));
+  const projectedTotalScore = projectedPillarScores.reduce((sum, score) => sum + score, 0);
+  const projectedColor = projectedTotalScore <= 20 ? maturityColors[0] : projectedTotalScore <= 47 ? maturityColors[1] : projectedTotalScore <= 61 ? maturityColors[2] : projectedTotalScore <= 74 ? maturityColors[3] : maturityColors[4];
+  slide = pptx.addSlide();
+  slide.background = { color: "000000" };
+  slide.addImage({ data: nextStepsBlank, x: 0, y: 0, w: 13.334, h: 7.5 });
+  slide.addShape("rect", { x: .35, y: .67, w: 7.85, h: 1.36, fill: { color: "141416" }, line: { transparency: 100 } });
+  slide.addText("Evolução de Maturidade", { x: .45, y: .94, w: 7.45, h: .48, fontFace: "Arial", fontSize: 31, bold: true, color: C.white, margin: 0, breakLine: false });
+  slide.addText("Impacto esperado com Serviços Gerenciados", { x: .46, y: 1.56, w: 6.8, h: .25, fontFace: "Arial", fontSize: 13, color: "E0E2E8", margin: 0, breakLine: false });
+  slide.addShape("roundRect", { x: .55, y: 2.45, w: 3.15, h: 3.72, rectRadius: .06, fill: { color: "080B12", transparency: 5 }, line: { color: "3A284D", width: 1 } });
+  slide.addText("EVOLUÇÃO DO SCORE", { x: .8, y: 2.72, w: 2.65, h: .2, fontFace: "Arial", fontSize: 9, bold: true, color: "AAB2C2", align: "center", margin: 0 });
+  slide.addShape("ellipse", { x: .83, y: 3.18, w: 1.05, h: 1.05, fill: { color: "05070D" }, line: { color: currentMaturityColor, width: 3 } });
+  slide.addText(String(data.totalScore), { x: .83, y: 3.41, w: 1.05, h: .3, fontFace: "Arial", fontSize: 23, bold: true, color: currentMaturityColor, align: "center", margin: 0, breakLine: false });
+  slide.addText("ATUAL", { x: .83, y: 4.34, w: 1.05, h: .18, fontFace: "Arial", fontSize: 7, bold: true, color: "AAB2C2", align: "center", margin: 0 });
+  slide.addText("→", { x: 1.91, y: 3.49, w: .45, h: .26, fontFace: "Arial", fontSize: 18, bold: true, color: C.cyan, align: "center", margin: 0 });
+  slide.addShape("ellipse", { x: 2.38, y: 3.18, w: 1.05, h: 1.05, fill: { color: "05070D" }, line: { color: projectedColor, width: 3 } });
+  slide.addText(String(projectedTotalScore), { x: 2.38, y: 3.41, w: 1.05, h: .3, fontFace: "Arial", fontSize: 23, bold: true, color: projectedColor, align: "center", margin: 0, breakLine: false });
+  slide.addText("COM ISG", { x: 2.38, y: 4.34, w: 1.05, h: .18, fontFace: "Arial", fontSize: 7, bold: true, color: C.cyan, align: "center", margin: 0 });
+  slide.addText(`${maturityLabel(data.totalScore)}  →  ${maturityLabel(projectedTotalScore)}`, { x: .78, y: 4.82, w: 2.7, h: .28, fontFace: "Arial", fontSize: 10, bold: true, color: C.white, align: "center", margin: 0, breakLine: false });
+  slide.addShape("roundRect", { x: 1.12, y: 5.31, w: 2.03, h: .45, rectRadius: .06, fill: { color: "0A3028" }, line: { color: "35D999", width: 1 } });
+  slide.addText(`+${Math.max(0, projectedTotalScore - data.totalScore)} PONTOS`, { x: 1.2, y: 5.44, w: 1.87, h: .16, fontFace: "Arial", fontSize: 8.5, bold: true, color: "35D999", align: "center", margin: 0, breakLine: false });
+  slide.addShape("roundRect", { x: 3.95, y: 2.45, w: 8.83, h: 3.72, rectRadius: .06, fill: { color: "080B12", transparency: 5 }, line: { color: "263044", width: 1 } });
+  slide.addText("EQUILÍBRIO DE CAPACIDADES", { x: 4.25, y: 2.72, w: 3.5, h: .2, fontFace: "Arial", fontSize: 9, bold: true, color: "AAB2C2", margin: 0 });
+  slide.addShape("ellipse", { x: 10.37, y: 2.75, w: .1, h: .1, fill: { color: C.magenta }, line: { transparency: 100 } });
+  slide.addText("ATUAL", { x: 10.52, y: 2.72, w: .62, h: .16, fontFace: "Arial", fontSize: 6.5, color: "AAB2C2", margin: 0 });
+  slide.addShape("ellipse", { x: 11.3, y: 2.75, w: .1, h: .1, fill: { color: C.cyan }, line: { transparency: 100 } });
+  slide.addText("COM ISG", { x: 11.45, y: 2.72, w: .8, h: .16, fontFace: "Arial", fontSize: 6.5, color: "AAB2C2", margin: 0 });
+  pillars.forEach((pillar, index) => { const y = 3.23 + index * .53; const current = data.pillarScores[index] ?? 0; const future = projectedPillarScores[index] ?? current; slide.addText(pillar.name, { x: 4.25, y: y - .02, w: 2.45, h: .26, fontFace: "Arial", fontSize: 7.4, color: C.white, valign: "mid", margin: 0, breakLine: false }); slide.addShape("roundRect", { x: 6.82, y, w: 4.75, h: .1, rectRadius: .02, fill: { color: "202637" }, line: { transparency: 100 } }); if (future > 0) slide.addShape("roundRect", { x: 6.82, y, w: 4.75 * future / 20, h: .1, rectRadius: .02, fill: { color: C.cyan, transparency: 18 }, line: { transparency: 100 } }); slide.addShape("roundRect", { x: 6.82, y: y + .15, w: 4.75, h: .1, rectRadius: .02, fill: { color: "202637" }, line: { transparency: 100 } }); if (current > 0) slide.addShape("roundRect", { x: 6.82, y: y + .15, w: 4.75 * current / 20, h: .1, rectRadius: .02, fill: { color: C.magenta, transparency: 12 }, line: { transparency: 100 } }); slide.addText(`${current} → ${future}`, { x: 11.73, y: y - .02, w: .7, h: .25, fontFace: "Arial", fontSize: 7.2, bold: true, color: future > current ? "35D999" : "AAB2C2", align: "right", margin: 0, breakLine: false }); });
   slide = pptx.addSlide();
   slide.background = { color: "000000" };
   slide.addImage({ data: continuityClosing, x: 0, y: 0, w: 13.334, h: 7.5 });
