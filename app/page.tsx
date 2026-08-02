@@ -4,11 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { pillars, maturityForScore, type Pillar } from "./assessment-data";
 import { mapObservation, observationFindingId, type AssessmentObservation } from "./observation-mapping";
 
-type View = "overview" | "questionnaire" | "findings";
+type View = "overview" | "questionnaire" | "isg" | "findings";
 type AnswerState = Record<string, { score: number; note: string }>;
 type Vulnerability = { id: string; severity: string; score: number | null; description: string; risk: string; url: string; matchStatus: string; serverId: string; server: string; site: string; version: string; identifiedProduct?: string };
 type SoftwareEntry = { id: string; server: string; site: string; version: string; checking: boolean; checkedAt?: string; error?: string; identifiedProduct?: string };
-type AssessmentFile = { schemaVersion?: number; assessmentId?: string; client?: string; specialist?: string; exportedAt?: string; answers?: AnswerState; software?: SoftwareEntry[]; vulnerabilities?: Vulnerability[]; observations?: AssessmentObservation[]; excludedFindingIds?: string[] };
+type AssessmentFile = { schemaVersion?: number; assessmentId?: string; client?: string; specialist?: string; exportedAt?: string; answers?: AnswerState; isgAnswers?: AnswerState; software?: SoftwareEntry[]; vulnerabilities?: Vulnerability[]; observations?: AssessmentObservation[]; excludedFindingIds?: string[] };
 
 const demoAnswers: AnswerState = Object.fromEntries(
   pillars.flatMap((pillar) =>
@@ -22,6 +22,13 @@ const demoAnswers: AnswerState = Object.fromEntries(
 const emptyAnswers: AnswerState = Object.fromEntries(
   pillars.flatMap((pillar) => pillar.questions.map((question) => [question.id, { score: 0, note: "" }])),
 );
+
+const projectedAnswers = (source: AnswerState): AnswerState => Object.fromEntries(pillars.flatMap((pillar) => pillar.questions.map((question) => {
+  const current = Math.max(0, Math.min(question.max, source[question.id]?.score ?? 0));
+  return [question.id, { score: Math.min(question.max, current + Math.ceil((question.max - current) * .7)), note: source[question.id]?.note ?? "" }];
+})));
+
+const radarPolygon = (scores: number[]) => `polygon(50% ${50 - (scores[0] ?? 0) * 2.2}%, ${50 + (scores[1] ?? 0) * 2.1}% ${50 - (scores[1] ?? 0) * .6}%, ${50 + (scores[2] ?? 0) * 1.3}% ${50 + (scores[2] ?? 0) * 1.8}%, ${50 - (scores[3] ?? 0) * 1.3}% ${50 + (scores[3] ?? 0) * 1.8}%, ${50 - (scores[4] ?? 0) * 2.1}% ${50 - (scores[4] ?? 0) * .6}%)`;
 
 function scoreColor(score: number) {
   if (score <= 20) return "var(--danger)";
@@ -57,8 +64,10 @@ export default function Home() {
   const [importError, setImportError] = useState("");
   const [view, setView] = useState<View>("overview");
   const [answers, setAnswers] = useState<AnswerState>(demoAnswers);
+  const [isgAnswers, setIsgAnswers] = useState<AnswerState>(() => projectedAnswers(demoAnswers));
   const [client, setClient] = useState("Cliente demonstração");
   const [activePillar, setActivePillar] = useState(0);
+  const [isgActivePillar, setIsgActivePillar] = useState(0);
   const [software, setSoftware] = useState<SoftwareEntry[]>([{ id: crypto.randomUUID(), server: "", site: "", version: "", checking: false }]);
   const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
   const [observations, setObservations] = useState<AssessmentObservation[]>([]);
@@ -71,6 +80,8 @@ export default function Home() {
     [answers],
   );
   const totalScore = pillarScores.reduce((sum, score) => sum + score, 0);
+  const isgPillarScores = useMemo(() => pillars.map((pillar) => pillar.questions.reduce((sum, question) => sum + (isgAnswers[question.id]?.score ?? 0), 0)), [isgAnswers]);
+  const isgTotalScore = isgPillarScores.reduce((sum, score) => sum + score, 0);
   const maturity = maturityForScore(totalScore);
   const allFindings = useMemo(
     () => pillars.flatMap((pillar) => pillar.questions.filter((q) => (answers[q.id]?.score ?? 0) < q.max).map((q) => ({ pillar, question: q, score: answers[q.id]?.score ?? 0 }))),
@@ -87,18 +98,19 @@ export default function Home() {
         await fetch("/api/assessments", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ id: assessmentId, client, answers: { specialist, answers, software, vulnerabilities, observations, excludedFindingIds }, score: totalScore, maturity: maturity.label }),
+          body: JSON.stringify({ id: assessmentId, client, answers: { specialist, answers, isgAnswers, software, vulnerabilities, observations, excludedFindingIds }, score: totalScore, maturity: maturity.label }),
         });
         setSaved(true);
       } catch { /* stays as a draft in the current session */ }
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [answers, assessmentId, client, excludedFindingIds, maturity.label, observations, saved, software, specialist, totalScore, vulnerabilities]);
+  }, [answers, assessmentId, client, excludedFindingIds, isgAnswers, maturity.label, observations, saved, software, specialist, totalScore, vulnerabilities]);
 
   const createAssessment = () => {
     if (!client.trim() || !specialist.trim()) return;
     setAssessmentId(crypto.randomUUID());
     setAnswers(emptyAnswers);
+    setIsgAnswers(projectedAnswers(emptyAnswers));
     setSoftware([{ id: crypto.randomUUID(), server: "", site: "", version: "", checking: false }]);
     setVulnerabilities([]);
     setObservations([]);
@@ -124,6 +136,8 @@ export default function Home() {
       setClient(imported.client.trim());
       setSpecialist(typeof imported.specialist === "string" ? imported.specialist : "Não informado");
       setAnswers(normalizedAnswers);
+      const importedIsg = imported.isgAnswers && typeof imported.isgAnswers === "object" ? Object.fromEntries(pillars.flatMap((pillar) => pillar.questions.map((question) => { const value = imported.isgAnswers?.[question.id]; return [question.id, { score: Math.max(0, Math.min(question.max, Number(value?.score) || 0)), note: typeof value?.note === "string" ? value.note : "" }]; }))) : projectedAnswers(normalizedAnswers);
+      setIsgAnswers(importedIsg);
       setSoftware(Array.isArray(imported.software) && imported.software.length ? imported.software.map((entry) => ({ ...entry, id: entry.id || crypto.randomUUID(), checking: false, error: undefined })) : [{ id: crypto.randomUUID(), server: "", site: "", version: "", checking: false }]);
       setVulnerabilities(Array.isArray(imported.vulnerabilities) ? imported.vulnerabilities : []);
       setObservations(Array.isArray(imported.observations) ? imported.observations.filter((item) => item && typeof item.id === "string" && typeof item.text === "string") : []);
@@ -142,6 +156,7 @@ export default function Home() {
     setExcludedFindingIds((current) => current.filter((findingId) => findingId !== id));
     setSaved(false);
   };
+  const updateIsgAnswer = (id: string, patch: Partial<AnswerState[string]>) => { setIsgAnswers((current) => ({ ...current, [id]: { ...current[id], ...patch } })); setSaved(false); };
 
   const deleteFinding = (id: string) => {
     setExcludedFindingIds((current) => current.includes(id) ? current : [...current, id]);
@@ -198,14 +213,14 @@ export default function Home() {
       const response = await fetch("/api/export", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ client, specialist, answers, pillarScores, totalScore, maturity: maturity.label, findings, software, vulnerabilities, observations, excludedFindingIds }),
+        body: JSON.stringify({ client, specialist, answers, isgAnswers, pillarScores, totalScore, maturity: maturity.label, findings, software, vulnerabilities, observations, excludedFindingIds }),
       });
       if (!response.ok) throw new Error("export failed");
       const blob = await response.blob();
       const safeClient = client.replace(/[^a-z0-9]+/gi, "-");
       const download = (content: Blob, filename: string) => { const url = URL.createObjectURL(content); const anchor = document.createElement("a"); anchor.href = url; anchor.download = filename; document.body.appendChild(anchor); anchor.click(); anchor.remove(); window.setTimeout(() => URL.revokeObjectURL(url), 1000); };
       download(blob, `XTR-Assessment-${safeClient}.pptx`);
-      const assessmentFile: AssessmentFile = { schemaVersion: 1, assessmentId, client, specialist, exportedAt: new Date().toISOString(), answers, software: software.map((entry) => ({ id: entry.id, server: entry.server, site: entry.site, version: entry.version, checkedAt: entry.checkedAt, identifiedProduct: entry.identifiedProduct, checking: false })), vulnerabilities, observations, excludedFindingIds };
+      const assessmentFile: AssessmentFile = { schemaVersion: 2, assessmentId, client, specialist, exportedAt: new Date().toISOString(), answers, isgAnswers, software: software.map((entry) => ({ id: entry.id, server: entry.server, site: entry.site, version: entry.version, checkedAt: entry.checkedAt, identifiedProduct: entry.identifiedProduct, checking: false })), vulnerabilities, observations, excludedFindingIds };
       download(new Blob([JSON.stringify(assessmentFile, null, 2)], { type: "application/json" }), `XTR-Assessment-${safeClient}.json`);
     } finally { setExporting(false); }
   };
@@ -235,6 +250,7 @@ export default function Home() {
         <nav aria-label="Navegação principal">
           <button className={view === "overview" ? "active" : ""} onClick={() => setView("overview")}><span>⌁</span> Visão geral</button>
           <button className={view === "questionnaire" ? "active" : ""} onClick={() => setView("questionnaire")}><span>◫</span> Questionário</button>
+          <button className={view === "isg" ? "active" : ""} onClick={() => setView("isg")}><span>↗</span> Score com ISG</button>
           <button className={view === "findings" ? "active" : ""} onClick={() => setView("findings")}><span>△</span> Achados <em>{findingCount}</em></button>
         </nav>
         <div className="sidebar-foot xtreme-credit"><small>Powered by</small><img src="/xtreme-it-logo.png" alt="Xtreme IT" /></div>
@@ -242,7 +258,7 @@ export default function Home() {
 
       <section className="workspace">
         <header className="topbar">
-          <div className="topbar-brand"><img src="/xtr-assessment-logo.png" alt="" /><p>XTR ASSESSMENT <span>/</span> {view === "overview" ? "VISÃO GERAL" : view === "questionnaire" ? "QUESTIONÁRIO" : "ACHADOS"}</p></div>
+          <div className="topbar-brand"><img src="/xtr-assessment-logo.png" alt="" /><p>XTR ASSESSMENT <span>/</span> {view === "overview" ? "VISÃO GERAL" : view === "questionnaire" ? "QUESTIONÁRIO" : view === "isg" ? "SCORE COM ISG" : "ACHADOS"}</p></div>
           <div className="top-actions"><span className="save-state"><i />{saved ? "Salvo agora" : "Salvando..."}</span><button className="primary" onClick={exportDeck} disabled={exporting}>{exporting ? "Gerando..." : "Gerar Relatório"}</button></div>
         </header>
 
@@ -254,7 +270,7 @@ export default function Home() {
                 <div className="score-orbit" style={{ "--score": `${totalScore}%`, "--score-color": scoreColor(totalScore) } as React.CSSProperties}><div><strong style={{ color: scoreColor(totalScore) }}>{totalScore}</strong><span>/100</span><small>PONTOS</small></div></div>
                 <div className="score-copy"><span>NÍVEL DE MATURIDADE</span><h2 style={{ color: scoreColor(totalScore) }}>{maturity.label}</h2><p>{maturity.description}</p><div className="scale"><i style={{ left: `${totalScore}%` }} /><span>0</span><span>20</span><span>47</span><span>61</span><span>74</span><span>100</span></div></div>
               </article>
-              <article className="radar-card glow-card"><div className="section-head"><div><span>MATURIDADE POR PILAR</span><h3>Equilíbrio de capacidades</h3></div><b>ATUAL</b></div><div className="radar-wrap"><div className="radar"><i style={{ clipPath: `polygon(50% ${50 - pillarScores[0] * 2.2}%, ${50 + pillarScores[1] * 2.1}% ${50 - pillarScores[1] * .6}%, ${50 + pillarScores[2] * 1.3}% ${50 + pillarScores[2] * 1.8}%, ${50 - pillarScores[3] * 1.3}% ${50 + pillarScores[3] * 1.8}%, ${50 - pillarScores[4] * 2.1}% ${50 - pillarScores[4] * .6}%)` }} /></div><div className="radar-legend"><span>Fundamentos de<br />Proteção de Dados</span><span>Replicação e<br />Controles</span><span>Isolamento e<br />Compliance</span><span>Resposta e<br />Prontidão</span><span>Governança e<br />Gestão</span></div></div></article>
+              <article className="radar-card glow-card"><div className="section-head"><div><span>MATURIDADE POR PILAR</span><h3>Equilíbrio de capacidades</h3></div><div className="radar-key"><span><i className="current-dot" />ATUAL</span><span><i className="future-dot" />COM ISG</span></div></div><div className="radar-wrap"><div className="radar"><i className="future-shape" style={{ clipPath: radarPolygon(isgPillarScores) }} /><i className="current-shape" style={{ clipPath: radarPolygon(pillarScores) }} /></div><div className="radar-legend"><span>Fundamentos de<br />Proteção de Dados</span><span>Replicação e<br />Controles</span><span>Isolamento e<br />Compliance</span><span>Resposta e<br />Prontidão</span><span>Governança e<br />Gestão</span></div></div></article>
             </section>
             <section className="content-grid"><article className="panel"><div className="section-head"><div><span>DESEMPENHO</span><h3>Resultado por pilar</h3></div><button onClick={() => setView("questionnaire")}>Revisar respostas →</button></div><PillarBars answers={answers} /></article><article className="panel priority"><div className="section-head"><div><span>ATENÇÃO IMEDIATA</span><h3>Gaps prioritários</h3></div><em>{findings.filter((f) => f.score === 0).length} críticos</em></div>{findings.slice(0, 3).map(({ pillar, question }) => <div className="finding-mini" key={question.id}><span style={{ color: pillar.color }}>{pillar.icon}</span><div><b>{question.title}</b><small>{question.risk}</small></div><i>ALTA</i></div>)}<button className="full-link" onClick={() => setView("findings")}>Ver todos os achados</button></article></section>
             <section className="frameworks"><span>CROSS-COMPLIANCE</span><b>ISO/IEC 27001:2022</b><b>NIST CSF 2.0</b><b>LGPD</b><small>Mapeamentos são exposições potenciais e requerem validação especializada.</small></section>
@@ -266,6 +282,14 @@ export default function Home() {
             <div className="page-title"><div><span className="eyebrow">QUESTIONÁRIO BASE</span><h1>Avaliação por pilar</h1><p>Registre a pontuação e as evidências observadas no ambiente.</p></div><div className="progress-ring">{totalScore}<small>/100</small></div></div>
             <div className="pillar-tabs seven-tabs" role="tablist">{pillars.map((pillar, index) => <button key={pillar.id} className={activePillar === index ? "active" : ""} onClick={() => setActivePillar(index)} style={{ "--pillar": pillar.color } as React.CSSProperties}><span>{pillar.icon}</span><div><small>PILAR {index + 1}</small><b>{pillar.name}</b></div><em>{pillarScores[index]}/20</em></button>)}<button className={activePillar === 5 ? "active software-tab" : "software-tab"} onClick={() => setActivePillar(5)} style={{ "--pillar": "#1ddbe0" } as React.CSSProperties}><span>▣</span><div><small>INVENTÁRIO</small><b>Versões de Software</b></div><em>{software.length}</em></button><button className={activePillar === 6 ? "active observation-tab" : "observation-tab"} onClick={() => setActivePillar(6)} style={{ "--pillar": "#ec39cb" } as React.CSSProperties}><span>✎</span><div><small>REGISTRO LIVRE</small><b>Observações</b></div><em>{observations.length}</em></button></div>
             {activePillar < 5 ? <QuestionList pillar={pillars[activePillar]} answers={answers} updateAnswer={updateAnswer} /> : activePillar === 5 ? <SoftwareVersions entries={software} vulnerabilities={vulnerabilities} update={updateSoftware} add={addSoftware} remove={removeSoftware} check={checkVulnerabilities} /> : <Observations observations={observations} add={addObservation} update={updateObservation} remove={deleteObservation} />}
+          </div>
+        )}
+
+        {view === "isg" && (
+          <div className="page questionnaire-page isg-page">
+            <div className="page-title"><div><span className="eyebrow">CENÁRIO FUTURO · SERVIÇOS GERENCIADOS</span><h1>Score com ISG</h1><p>Simule a evolução da maturidade após a adoção dos serviços gerenciados da Xtreme IT.</p></div><div className="projection-score"><span>ATUAL <b>{totalScore}/100</b></span><strong>{isgTotalScore}<small>/100</small></strong><em>+{Math.max(0, isgTotalScore - totalScore)} pontos</em><button className="ghost" onClick={() => { setIsgAnswers(projectedAnswers(answers)); setSaved(false); }}>Recalcular projeção</button></div></div>
+            <div className="pillar-tabs isg-tabs" role="tablist">{pillars.map((pillar, index) => <button key={pillar.id} className={isgActivePillar === index ? "active" : ""} onClick={() => setIsgActivePillar(index)} style={{ "--pillar": pillar.color } as React.CSSProperties}><span>{pillar.icon}</span><div><small>PILAR {index + 1}</small><b>{pillar.name}</b></div><em>{isgPillarScores[index]}/20</em></button>)}</div>
+            <QuestionList pillar={pillars[isgActivePillar]} answers={isgAnswers} updateAnswer={updateIsgAnswer} />
           </div>
         )}
 
