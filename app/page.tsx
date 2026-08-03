@@ -270,7 +270,7 @@ export default function Home() {
           <div className="page overview-page">
             <div className="page-title"><div><span className="eyebrow">DIAGNÓSTICO ATUAL</span><h1>Maturidade em Resiliência de Dados</h1><p>Visão consolidada do nível de proteção, prontidão e governança.</p></div><div className="assessment-identification"><label>CLIENTE<input value={client} onChange={(e) => { setClient(e.target.value); setSaved(false); }} /></label><label>ESPECIALISTA RESPONSÁVEL<input value={specialist} onChange={(e) => { setSpecialist(e.target.value); setSaved(false); }} /></label></div></div>
             <section className="overview-cards">
-              <article className="score-card compact-score glow-card">
+              <article className="score-card compact-score current-score-card glow-card">
                 <div className="score-orbit" style={{ "--score": `${totalScore}%`, "--score-color": scoreColor(totalScore) } as React.CSSProperties}><div><strong style={{ color: scoreColor(totalScore) }}>{totalScore}</strong><span>/100</span><small>PONTOS</small></div></div>
                 <div className="score-copy"><span>CENÁRIO ATUAL</span><h2 style={{ color: scoreColor(totalScore) }}>{maturity.label}</h2><p>{maturity.description}</p><div className="scale"><i style={{ left: `${totalScore}%` }} /><span>0</span><span>20</span><span>47</span><span>61</span><span>74</span><span>100</span></div></div>
               </article>
