@@ -267,3 +267,28 @@
   .vulnerability-row { grid-template-columns: 1fr 82px; }
   .vulnerability-row p,.vulnerability-row > small { grid-column: 1 / -1; }
 }
+
+/* Visão Geral: grade 2 × 2 rigorosamente alinhada */
+@media (min-width: 1051px) {
+  .overview-page .overview-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, 390px);
+    grid-auto-rows: 390px;
+    gap: 18px;
+    align-items: stretch;
+  }
+
+  .overview-page .overview-cards > article {
+    width: 100%;
+    min-width: 0;
+    height: 390px;
+    min-height: 390px;
+    margin: 0;
+    align-self: stretch;
+  }
+
+  .overview-page .overview-pillar-card {
+    overflow: visible;
+  }
+}
