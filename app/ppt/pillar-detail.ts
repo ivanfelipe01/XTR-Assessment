@@ -48,20 +48,20 @@ function paginate(pillar: Pillar, answers: Answers) {
 
 function addInstitutionalHeader(slide: pptxgen.Slide, logo: string, continuation: boolean) {
   slide.background = { color: T.bg };
-  slide.addImage({ data: logo, x: .48, y: .25, w: 1.78, h: .45 });
-  slide.addText(continuation ? "DETALHAMENTO DO PILAR · CONTINUAÇÃO" : "RESULTADO DETALHADO DO PILAR", { x: 9.1, y: .38, w: 3.72, h: .17, fontFace: "Arial", fontSize: 7.3, bold: true, color: "7F8494", align: "right", margin: 0, breakLine: false });
+  slide.addImage({ data: logo, x: .48, y: .41, w: 1.78, h: .14 });
+  slide.addText(continuation ? "DETALHAMENTO DO PILAR · CONTINUAÇÃO" : "RESULTADO DETALHADO DO PILAR", { x: 9.1, y: .38, w: 3.72, h: .17, fontFace: "Raleway", fontSize: 7.3, bold: true, color: "7F8494", align: "right", margin: 0, breakLine: false });
 }
 
 function addPillarCard(slide: pptxgen.Slide, pillar: Pillar, index: number, score: number, max: number) {
   slide.addShape("roundRect", { x: .48, y: .9, w: 12.36, h: .92, rectRadius: .05, fill: { color: "070913", transparency: 4 }, line: { color: T.purple, width: 1 } });
-  slide.addText(`NÍVEL ${index + 1}`, { x: .78, y: 1.06, w: .9, h: .15, fontFace: "Arial", fontSize: 7.2, bold: true, color: T.purple, margin: 0 });
-  slide.addText(pillar.name.toUpperCase(), { x: .78, y: 1.27, w: 4.14, h: .24, fontFace: "Arial", fontSize: 13.5, bold: true, color: T.white, margin: 0, breakLine: false, fit: "shrink" });
+  slide.addText(`NÍVEL ${index + 1}`, { x: .78, y: 1.06, w: .9, h: .15, fontFace: "Raleway", fontSize: 7.2, bold: true, color: T.purple, margin: 0 });
+  slide.addText(pillar.name.toUpperCase(), { x: .78, y: 1.27, w: 4.14, h: .24, fontFace: "Raleway", fontSize: 13.5, bold: true, color: T.white, margin: 0, breakLine: false, fit: "shrink" });
   slide.addShape("line", { x: 5.12, y: 1.08, w: 0, h: .55, line: { color: T.line, width: 1 } });
-  slide.addText(clean(pillar.description, "Avalia os controles que sustentam a proteção e a resiliência do ambiente de backup."), { x: 5.47, y: 1.09, w: 4.82, h: .49, fontFace: "Arial", fontSize: 8.6, color: T.muted, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
-  slide.addText("MÁXIMA", { x: 10.5, y: 1.07, w: .78, h: .14, fontFace: "Arial", fontSize: 6.5, bold: true, color: T.purple, align: "center", margin: 0 });
-  slide.addText(String(max), { x: 10.5, y: 1.25, w: .78, h: .3, fontFace: "Arial", fontSize: 19, bold: true, color: T.purple, align: "center", margin: 0 });
-  slide.addText("ATUAL", { x: 11.63, y: 1.07, w: .78, h: .14, fontFace: "Arial", fontSize: 6.5, bold: true, color: T.blue, align: "center", margin: 0 });
-  slide.addText(String(score), { x: 11.63, y: 1.25, w: .78, h: .3, fontFace: "Arial", fontSize: 19, bold: true, color: T.blue, align: "center", margin: 0 });
+  slide.addText(clean(pillar.description, "Avalia os controles que sustentam a proteção e a resiliência do ambiente de backup."), { x: 5.47, y: 1.09, w: 4.82, h: .49, fontFace: "Raleway", fontSize: 8.6, color: T.muted, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
+  slide.addText("MÁXIMA", { x: 10.5, y: 1.07, w: .78, h: .14, fontFace: "Raleway", fontSize: 6.5, bold: true, color: T.purple, align: "center", margin: 0 });
+  slide.addText(String(max), { x: 10.5, y: 1.25, w: .78, h: .3, fontFace: "Raleway", fontSize: 19, bold: true, color: T.purple, align: "center", margin: 0 });
+  slide.addText("ATUAL", { x: 11.63, y: 1.07, w: .78, h: .14, fontFace: "Raleway", fontSize: 6.5, bold: true, color: T.blue, align: "center", margin: 0 });
+  slide.addText(String(score), { x: 11.63, y: 1.25, w: .78, h: .3, fontFace: "Raleway", fontSize: 19, bold: true, color: T.blue, align: "center", margin: 0 });
 }
 
 const columns = [
@@ -76,7 +76,7 @@ const columns = [
 function addTableHeader(slide: pptxgen.Slide) {
   columns.forEach((c) => {
     slide.addShape("rect", { x: c.x, y: 2.02, w: c.w, h: .48, fill: { color: T.purpleDark }, line: { color: "5A3D83", width: .6 } });
-    slide.addText(c.label, { x: c.x + .06, y: 2.15, w: c.w - .12, h: .2, fontFace: "Arial", fontSize: 6.4, bold: true, color: T.white, align: "center", valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
+    slide.addText(c.label, { x: c.x + .06, y: 2.15, w: c.w - .12, h: .2, fontFace: "Raleway", fontSize: 6.4, bold: true, color: T.white, align: "center", valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
   });
 }
 
@@ -87,16 +87,16 @@ function addControlRow(slide: pptxgen.Slide, pillar: Pillar, index: number, answ
   const note = clean(answers[q.id]?.note, "Evidência não informada pelo cliente.");
   const recommendations = q.recommendations?.length ? q.recommendations : ["Definir e executar um plano de adequação para este controle."];
   columns.forEach((c) => slide.addShape("rect", { x: c.x, y, w: c.w, h, fill: { color: T.panel }, line: { color: T.line, width: .55 } }));
-  slide.addText(q.title, { x: .68, y: y + .14, w: 1.72, h: h - .25, fontFace: "Arial", fontSize: 7.6, bold: true, color: T.white, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
+  slide.addText(q.title, { x: .68, y: y + .14, w: 1.72, h: h - .25, fontFace: "Raleway", fontSize: 7.6, bold: true, color: T.white, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
   slide.addShape("ellipse", { x: 2.76, y: y + .14, w: .23, h: .23, fill: { color: status.color, transparency: 78 }, line: { color: status.color, width: .9 } });
-  slide.addText(status.symbol, { x: 2.76, y: y + .175, w: .23, h: .11, fontFace: "Arial", fontSize: 7.2, bold: true, color: status.color, align: "center", margin: 0 });
-  slide.addText(status.label, { x: 3.1, y: y + .15, w: 1.77, h: .14, fontFace: "Arial", fontSize: 6.1, bold: true, color: status.color, margin: 0 });
-  slide.addText(note, { x: 2.76, y: y + .43, w: 2.34, h: h - .53, fontFace: "Arial", fontSize: 6.7, color: T.muted, valign: "top", margin: 0, breakLine: false, fit: "shrink" });
-  slide.addText([{ text: "• ", options: { color: T.purple, bold: true } }, { text: clean(q.risk, "Risco não informado."), options: { color: T.muted } }], { x: 5.43, y: y + .17, w: 1.9, h: h - .3, fontFace: "Arial", fontSize: 6.6, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
+  slide.addText(status.symbol, { x: 2.76, y: y + .175, w: .23, h: .11, fontFace: "Raleway", fontSize: 7.2, bold: true, color: status.color, align: "center", margin: 0 });
+  slide.addText(status.label, { x: 3.1, y: y + .15, w: 1.77, h: .14, fontFace: "Raleway", fontSize: 6.1, bold: true, color: status.color, margin: 0 });
+  slide.addText(note, { x: 2.76, y: y + .43, w: 2.34, h: h - .53, fontFace: "Raleway", fontSize: 6.7, color: T.muted, valign: "top", margin: 0, breakLine: false, fit: "shrink" });
+  slide.addText([{ text: "• ", options: { color: T.purple, bold: true } }, { text: clean(q.risk, "Risco não informado."), options: { color: T.muted } }], { x: 5.43, y: y + .17, w: 1.9, h: h - .3, fontFace: "Raleway", fontSize: 6.6, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
   const recRuns = recommendations.flatMap((rec, i) => [{ text: "• ", options: { color: T.purple, bold: true } }, { text: `${clean(rec, "Recomendação não informada.")}${i < recommendations.length - 1 ? "\n" : ""}`, options: { color: T.muted } }]);
-  slide.addText(recRuns, { x: 7.65, y: y + .17, w: 2.42, h: h - .3, fontFace: "Arial", fontSize: 6.5, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
-  slide.addText(String(q.max), { x: 10.24, y: y + h / 2 - .18, w: 1.28, h: .36, fontFace: "Arial", fontSize: 19, bold: true, color: T.purple, align: "center", valign: "mid", margin: 0 });
-  slide.addText(String(score), { x: 11.52, y: y + h / 2 - .18, w: 1.32, h: .36, fontFace: "Arial", fontSize: 19, bold: true, color: T.blue, align: "center", valign: "mid", margin: 0 });
+  slide.addText(recRuns, { x: 7.65, y: y + .17, w: 2.42, h: h - .3, fontFace: "Raleway", fontSize: 6.5, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
+  slide.addText(String(q.max), { x: 10.24, y: y + h / 2 - .18, w: 1.28, h: .36, fontFace: "Raleway", fontSize: 19, bold: true, color: T.purple, align: "center", valign: "mid", margin: 0 });
+  slide.addText(String(score), { x: 11.52, y: y + h / 2 - .18, w: 1.32, h: .36, fontFace: "Raleway", fontSize: 19, bold: true, color: T.blue, align: "center", valign: "mid", margin: 0 });
 }
 
 function addFooter(slide: pptxgen.Slide, pillar: Pillar, answers: Answers, score: number, max: number) {
@@ -104,15 +104,15 @@ function addFooter(slide: pptxgen.Slide, pillar: Pillar, answers: Answers, score
   const maturity = maturityForScore(normalized);
   const color = maturityColor(maturity.label);
   slide.addShape("roundRect", { x: .48, y: 6.62, w: 12.36, h: .62, rectRadius: .05, fill: { color: "070913" }, line: { color: T.purple, width: 1 } });
-  slide.addText("◎", { x: .68, y: 6.79, w: .28, h: .18, fontFace: "Arial", fontSize: 11, color: T.purple, align: "center", margin: 0 });
-  slide.addText("RESUMO DO PILAR", { x: 1.03, y: 6.72, w: 1.2, h: .13, fontFace: "Arial", fontSize: 6.2, bold: true, color: T.purple, margin: 0 });
-  slide.addText(summaryFor(pillar, answers, score), { x: 1.03, y: 6.91, w: 6.87, h: .2, fontFace: "Arial", fontSize: 6.4, color: T.muted, margin: 0, breakLine: false, fit: "shrink" });
+  slide.addText("◎", { x: .68, y: 6.79, w: .28, h: .18, fontFace: "Raleway", fontSize: 11, color: T.purple, align: "center", margin: 0 });
+  slide.addText("RESUMO DO PILAR", { x: 1.03, y: 6.72, w: 1.2, h: .13, fontFace: "Raleway", fontSize: 6.2, bold: true, color: T.purple, margin: 0 });
+  slide.addText(summaryFor(pillar, answers, score), { x: 1.03, y: 6.91, w: 6.87, h: .2, fontFace: "Raleway", fontSize: 6.4, color: T.muted, margin: 0, breakLine: false, fit: "shrink" });
   slide.addShape("line", { x: 8.15, y: 6.76, w: 0, h: .34, line: { color: T.line, width: 1 } });
-  slide.addText("MATURIDADE", { x: 8.38, y: 6.72, w: 1.25, h: .13, fontFace: "Arial", fontSize: 6.2, bold: true, color: T.muted, align: "center", margin: 0 });
-  slide.addText(`${maturity.label === "Baixo" || maturity.label === "Preocupante" ? "⚠ " : "✓ "}${maturity.label}`, { x: 8.34, y: 6.91, w: 1.35, h: .18, fontFace: "Arial", fontSize: 10.5, bold: true, color, align: "center", margin: 0 });
+  slide.addText("MATURIDADE", { x: 8.38, y: 6.72, w: 1.25, h: .13, fontFace: "Raleway", fontSize: 6.2, bold: true, color: T.muted, align: "center", margin: 0 });
+  slide.addText(`${maturity.label === "Baixo" || maturity.label === "Preocupante" ? "⚠ " : "✓ "}${maturity.label}`, { x: 8.34, y: 6.91, w: 1.35, h: .18, fontFace: "Raleway", fontSize: 10.5, bold: true, color, align: "center", margin: 0 });
   slide.addShape("line", { x: 9.9, y: 6.76, w: 0, h: .34, line: { color: T.line, width: 1 } });
-  slide.addText("PONTUAÇÃO DO PILAR", { x: 10.12, y: 6.72, w: 2.34, h: .13, fontFace: "Arial", fontSize: 6.2, bold: true, color: T.muted, align: "center", margin: 0 });
-  slide.addText([{ text: String(score), options: { color: T.blue, bold: true } }, { text: ` / ${max}`, options: { color: T.white, bold: true } }], { x: 10.12, y: 6.89, w: 2.34, h: .22, fontFace: "Arial", fontSize: 14.5, align: "center", margin: 0 });
+  slide.addText("PONTUAÇÃO DO PILAR", { x: 10.12, y: 6.72, w: 2.34, h: .13, fontFace: "Raleway", fontSize: 6.2, bold: true, color: T.muted, align: "center", margin: 0 });
+  slide.addText([{ text: String(score), options: { color: T.blue, bold: true } }, { text: ` / ${max}`, options: { color: T.white, bold: true } }], { x: 10.12, y: 6.89, w: 2.34, h: .22, fontFace: "Raleway", fontSize: 14.5, align: "center", margin: 0 });
 }
 
 export function addPillarDetailSlides(pptx: pptxgen, pillar: Pillar, pillarIndex: number, answers: Answers, logo: string) {
@@ -134,6 +134,6 @@ export function addPillarDetailSlides(pptx: pptxgen, pillar: Pillar, pillarIndex
       y += h;
     });
     if (pageIndex === pages.length - 1) addFooter(slide, pillar, answers, score, max);
-    else slide.addText(`Continua no próximo slide · ${pageIndex + 1}/${pages.length}`, { x: 9.8, y: 7.08, w: 3.02, h: .12, fontFace: "Arial", fontSize: 5.8, color: "72798B", align: "right", margin: 0 });
+    else slide.addText(`Continua no próximo slide · ${pageIndex + 1}/${pages.length}`, { x: 9.8, y: 7.08, w: 3.02, h: .12, fontFace: "Raleway", fontSize: 5.8, color: "72798B", align: "right", margin: 0 });
   });
 }

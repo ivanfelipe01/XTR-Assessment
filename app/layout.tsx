@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./logo-overrides.css";
+import "./typography.css";
+import "./journey.css";
 
 export const metadata: Metadata = {
   title: "XTR Assessment | Resiliência de Dados",
