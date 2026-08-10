@@ -2,15 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { pillars, maturityForScore, type Pillar } from "./assessment-data";
+import { automaticComment } from "./assessment-comments";
 import { mapObservation, observationFindingId, type AssessmentObservation } from "./observation-mapping";
 import { referenceFor, type ReferenceEntry } from "./reference-catalog";
 
 type View = "overview" | "questionnaire" | "isg" | "findings" | "comparison";
 type Theme = "dark" | "light";
-type AnswerState = Record<string, { score: number; note: string }>;
+type AnswerState = Record<string, { score: number; note: string; noEvidence?: boolean }>;
 type Vulnerability = { id: string; severity: string; score: number | null; description: string; risk: string; url: string; matchStatus: string; serverId: string; server: string; site: string; version: string; identifiedProduct?: string };
 type SoftwareEntry = { id: string; server: string; site: string; version: string; checking: boolean; checkedAt?: string; error?: string; identifiedProduct?: string };
-type AssessmentFile = { schemaVersion?: number; assessmentId?: string; client?: string; specialist?: string; exportedAt?: string; answers?: AnswerState; isgAnswers?: AnswerState; guardianReviewedIds?: string[]; guardianStarted?: boolean; resultsUnlocked?: boolean; software?: SoftwareEntry[]; vulnerabilities?: Vulnerability[]; observations?: AssessmentObservation[]; excludedFindingIds?: string[] };
+type AssessmentFile = { schemaVersion?: number; assessmentId?: string; client?: string; specialist?: string; exportedAt?: string; answers?: AnswerState; isgAnswers?: AnswerState; guardianReviewedIds?: string[]; guardianStarted?: boolean; resultsUnlocked?: boolean; currentUnlockedPillar?: number; guardianUnlockedPillar?: number; software?: SoftwareEntry[]; vulnerabilities?: Vulnerability[]; observations?: AssessmentObservation[]; excludedFindingIds?: string[] };
 const specialistOptions = ["Ivan Felipe", "Guilherme Kaspary", "Ciro Missola"] as const;
 const maturityBands = [
   { label: "Preocupante", range: "Até 20 pontos", description: "Vulnerabilidades críticas e alto risco operacional.", color: "#ff4d68" },
@@ -20,35 +21,13 @@ const maturityBands = [
   { label: "Altamente Resiliente", range: "Acima de 75 pontos", description: "Ambiente robusto, otimizado e preparado.", color: "#1ddbe0" },
 ] as const;
 
-const zeroScoreComments: Record<string, string> = {
-  imutabilidade: "Não há qualquer evidência de uso de repositórios imutáveis, Object Lock ou funcionalidades equivalentes.",
-  hardening: "Não há evidência de aplicação de hardening nos componentes da infraestrutura de backup.",
-  acesso: "Não há evidência de implementação de RBAC, MFA ou SSO para proteção dos acessos ao ambiente de backup.",
-  criptografia: "Não há evidência de criptografia dos dados de backup em trânsito ou em repouso.",
-  segregacao: "Não há evidência de segregação de rede dedicada para o tráfego e os componentes de backup.",
-  "copia-secundaria": "Não há evidência de cópia secundária ou replicação dos dados de backup em domínio de falha distinto.",
-  ltr: "Não há evidência de política ou armazenamento destinado à retenção de longo prazo dos backups.",
-  monitoramento: "Não há evidência de monitoramento contínuo do ambiente de backup como aplicação Tier 1.",
-  patches: "Não há evidência de processo recorrente para avaliação e aplicação de upgrades e patches no ambiente de backup.",
-  airgap: "Não há evidência de isolamento físico ou lógico dos dados de backup por meio de Air-Gap.",
-  cofre: "Não há evidência de cofre de dados desconectado da produção e mantido fora do ambiente produtivo.",
-  compliance: "Não há evidência de mapeamento ou atendimento dos padrões regulatórios aplicáveis ao ambiente de backup.",
-  "clean-room": "Não há evidência de ambiente Clean Room isolado para testes e validações de recuperação.",
-  deteccao: "Não há evidência de mecanismos de detecção de ameaças cibernéticas aplicados às cópias e à infraestrutura de backup.",
-  auditoria: "Não há evidência de relatórios ou trilhas de auditoria destinados à análise de brechas e atividades suspeitas.",
-  "golden-copy": "Não há evidência de processo para identificação e validação de uma Golden Copy confiável e livre de ameaças.",
-  testes: "Não há evidência de execução periódica e documentada de testes de recuperação.",
-  equipe: "Não há evidência de equipe especializada, responsabilidades definidas ou prontidão formal para atuação em incidentes.",
-  runbooks: "Não há evidência de runbooks atualizados ou documentação formal do processo de recuperação.",
-};
-
-const zeroScoreComment = (id: string) => zeroScoreComments[id] ?? "Não há evidência de atendimento a este controle no ambiente atual.";
+const zeroScoreComment = (id: string) => automaticComment(id, 0);
 
 const demoAnswers: AnswerState = Object.fromEntries(
   pillars.flatMap((pillar) =>
     pillar.questions.map((question, index) => [
       question.id,
-      { score: index % 3 === 0 ? question.max : index % 3 === 1 ? Math.round(question.max / 2) : 0, note: index % 3 === 2 ? zeroScoreComment(question.id) : "" },
+      (() => { const score = index % 3 === 0 ? question.max : index % 3 === 1 ? Math.round(question.max / 2) : 0; return { score, note: automaticComment(question.id, score) }; })(),
     ]),
   ),
 );
@@ -61,12 +40,13 @@ const questionIds = pillars.flatMap((pillar) => pillar.questions.map((question) 
 
 const guardianAnswersFromCurrent = (source: AnswerState): AnswerState => Object.fromEntries(pillars.flatMap((pillar) => pillar.questions.map((question) => {
   const current = Math.max(0, Math.min(question.max, source[question.id]?.score ?? 0));
-  return [question.id, { score: current, note: "" }];
+  return [question.id, { score: current, note: automaticComment(question.id, current) }];
 })));
 
 const projectedAnswers = (source: AnswerState): AnswerState => Object.fromEntries(pillars.flatMap((pillar) => pillar.questions.map((question) => {
   const current = Math.max(0, Math.min(question.max, source[question.id]?.score ?? 0));
-  return [question.id, { score: Math.min(question.max, current + Math.ceil((question.max - current) * .7)), note: source[question.id]?.note ?? "" }];
+  const projected = Math.min(question.max, current + Math.ceil((question.max - current) * .7));
+  return [question.id, { score: projected, note: automaticComment(question.id, projected) }];
 })));
 
 const radarPoints = (scores: number[], radius = 105) => scores.map((score, index) => { const angle = -Math.PI / 2 + index * Math.PI * 2 / 5; const distance = radius * Math.max(0, Math.min(20, score)) / 20; return `${160 + Math.cos(angle) * distance},${160 + Math.sin(angle) * distance}`; }).join(" ");
@@ -123,6 +103,8 @@ export default function Home() {
   const [client, setClient] = useState("Cliente demonstração");
   const [activePillar, setActivePillar] = useState(0);
   const [isgActivePillar, setIsgActivePillar] = useState(0);
+  const [currentUnlockedPillar, setCurrentUnlockedPillar] = useState(0);
+  const [guardianUnlockedPillar, setGuardianUnlockedPillar] = useState(0);
   const [supplementaryView, setSupplementaryView] = useState<"inventory" | "observations" | null>(null);
   const [software, setSoftware] = useState<SoftwareEntry[]>([{ id: crypto.randomUUID(), server: "", site: "", version: "", checking: false }]);
   const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
@@ -164,6 +146,12 @@ export default function Home() {
   const guardianCompletedIds = useMemo(() => questionIds.filter((id) => { const unchanged = (isgAnswers[id]?.score ?? 0) === (answers[id]?.score ?? 0); return unchanged || guardianReviewedIds.includes(id) && Boolean(isgAnswers[id]?.note.trim()); }), [answers, guardianReviewedIds, isgAnswers]);
   const guardianReviewedCount = guardianCompletedIds.length;
   const guardianComplete = currentComplete && guardianReviewedCount === questionIds.length;
+  const currentPillarQuestionIds = pillars[activePillar].questions.map((question) => question.id);
+  const currentPillarComplete = currentPillarQuestionIds.every((id) => Boolean(answers[id]?.note.trim()));
+  const currentPillarPendingCount = currentPillarQuestionIds.filter((id) => !answers[id]?.note.trim()).length;
+  const guardianPillarQuestionIds = pillars[isgActivePillar].questions.map((question) => question.id);
+  const guardianPillarComplete = guardianPillarQuestionIds.every((id) => guardianCompletedIds.includes(id));
+  const guardianPillarPendingCount = guardianPillarQuestionIds.filter((id) => !guardianCompletedIds.includes(id)).length;
 
   useEffect(() => {
     if (!assessmentStarted) return;
@@ -178,13 +166,13 @@ export default function Home() {
         await fetch("/api/assessments", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ id: assessmentId, client, answers: { specialist, answers, isgAnswers, guardianReviewedIds, guardianStarted, resultsUnlocked, software, vulnerabilities, observations, excludedFindingIds }, score: totalScore, maturity: maturity.label }),
+          body: JSON.stringify({ id: assessmentId, client, answers: { specialist, answers, isgAnswers, guardianReviewedIds, guardianStarted, resultsUnlocked, currentUnlockedPillar, guardianUnlockedPillar, software, vulnerabilities, observations, excludedFindingIds }, score: totalScore, maturity: maturity.label }),
         });
         setSaved(true);
       } catch { /* stays as a draft in the current session */ }
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [answers, assessmentId, client, excludedFindingIds, guardianReviewedIds, guardianStarted, isgAnswers, maturity.label, observations, resultsUnlocked, saved, software, specialist, totalScore, vulnerabilities]);
+  }, [answers, assessmentId, client, currentUnlockedPillar, excludedFindingIds, guardianReviewedIds, guardianStarted, guardianUnlockedPillar, isgAnswers, maturity.label, observations, resultsUnlocked, saved, software, specialist, totalScore, vulnerabilities]);
 
   const createAssessment = () => {
     if (!client.trim() || !specialist.trim()) return;
@@ -200,6 +188,8 @@ export default function Home() {
     setExcludedFindingIds([]);
     setView("questionnaire");
     setActivePillar(0);
+    setCurrentUnlockedPillar(0);
+    setGuardianUnlockedPillar(0);
     setSupplementaryView(null);
     setNewAssessmentOpen(false);
     setAssessmentStarted(true);
@@ -212,19 +202,20 @@ export default function Home() {
     try {
       const imported = JSON.parse(await file.text()) as AssessmentFile;
       if (!imported.client || !imported.answers || typeof imported.answers !== "object") throw new Error("Arquivo incompatível");
-      const legacyContainer = imported.answers as AnswerState & { answers?: AnswerState; isgAnswers?: AnswerState; guardianReviewedIds?: string[]; guardianStarted?: boolean; resultsUnlocked?: boolean; specialist?: string };
+      const legacyContainer = imported.answers as AnswerState & { answers?: AnswerState; isgAnswers?: AnswerState; guardianReviewedIds?: string[]; guardianStarted?: boolean; resultsUnlocked?: boolean; currentUnlockedPillar?: number; guardianUnlockedPillar?: number; specialist?: string };
       const sourceAnswers = legacyContainer.answers && typeof legacyContainer.answers === "object" ? legacyContainer.answers : imported.answers;
       const sourceIsgAnswers = imported.isgAnswers && typeof imported.isgAnswers === "object" ? imported.isgAnswers : legacyContainer.isgAnswers;
       const normalizedAnswers: AnswerState = Object.fromEntries(pillars.flatMap((pillar) => pillar.questions.map((question) => {
         const value = sourceAnswers?.[question.id];
         const score = Math.max(0, Math.min(question.max, Number(value?.score) || 0));
-        return [question.id, { score, note: typeof value?.note === "string" && value.note.trim() ? value.note : score === 0 ? zeroScoreComment(question.id) : "" }];
+        const noEvidence = value?.noEvidence === true;
+        return [question.id, { score, noEvidence, note: typeof value?.note === "string" && value.note.trim() ? value.note : automaticComment(question.id, score, noEvidence) }];
       })));
       setAssessmentId(imported.assessmentId || crypto.randomUUID());
       setClient(imported.client.trim());
       setSpecialist(typeof imported.specialist === "string" ? imported.specialist : typeof legacyContainer.specialist === "string" ? legacyContainer.specialist : "Não informado");
       setAnswers(normalizedAnswers);
-      const importedIsg = sourceIsgAnswers && typeof sourceIsgAnswers === "object" ? Object.fromEntries(pillars.flatMap((pillar) => pillar.questions.map((question) => { const value = sourceIsgAnswers[question.id]; const minimum = normalizedAnswers[question.id]?.score ?? 0; return [question.id, { score: Math.max(minimum, Math.min(question.max, Number(value?.score) || 0)), note: typeof value?.note === "string" ? value.note : "" }]; }))) : guardianAnswersFromCurrent(normalizedAnswers);
+      const importedIsg = sourceIsgAnswers && typeof sourceIsgAnswers === "object" ? Object.fromEntries(pillars.flatMap((pillar) => pillar.questions.map((question) => { const value = sourceIsgAnswers[question.id]; const minimum = normalizedAnswers[question.id]?.score ?? 0; const score = Math.max(minimum, Math.min(question.max, Number(value?.score) || 0)); const noEvidence = value?.noEvidence === true; return [question.id, { score, noEvidence, note: typeof value?.note === "string" && value.note.trim() ? value.note : automaticComment(question.id, score, noEvidence) }]; }))) : guardianAnswersFromCurrent(normalizedAnswers);
       setIsgAnswers(importedIsg);
       const importedReviewedIds = Array.isArray(imported.guardianReviewedIds) ? imported.guardianReviewedIds : Array.isArray(legacyContainer.guardianReviewedIds) ? legacyContainer.guardianReviewedIds : [];
       setGuardianReviewedIds(importedReviewedIds.filter((id): id is string => typeof id === "string" && questionIds.includes(id)));
@@ -232,6 +223,10 @@ export default function Home() {
       const importedResultsUnlocked = imported.resultsUnlocked === true || legacyContainer.resultsUnlocked === true;
       setGuardianStarted(importedGuardianStarted);
       setResultsUnlocked(importedResultsUnlocked);
+      const importedCurrentUnlocked = Number.isInteger(imported.currentUnlockedPillar) ? imported.currentUnlockedPillar! : Number.isInteger(legacyContainer.currentUnlockedPillar) ? legacyContainer.currentUnlockedPillar! : importedGuardianStarted ? pillars.length - 1 : 0;
+      const importedGuardianUnlocked = Number.isInteger(imported.guardianUnlockedPillar) ? imported.guardianUnlockedPillar! : Number.isInteger(legacyContainer.guardianUnlockedPillar) ? legacyContainer.guardianUnlockedPillar! : importedResultsUnlocked ? pillars.length - 1 : 0;
+      setCurrentUnlockedPillar(Math.max(0, Math.min(pillars.length - 1, importedCurrentUnlocked)));
+      setGuardianUnlockedPillar(Math.max(0, Math.min(pillars.length - 1, importedGuardianUnlocked)));
       setSoftware(Array.isArray(imported.software) && imported.software.length ? imported.software.map((entry) => ({ ...entry, id: entry.id || crypto.randomUUID(), checking: false, error: undefined })) : [{ id: crypto.randomUUID(), server: "", site: "", version: "", checking: false }]);
       setVulnerabilities(Array.isArray(imported.vulnerabilities) ? imported.vulnerabilities : []);
       setObservations(Array.isArray(imported.observations) ? imported.observations.filter((item) => item && typeof item.id === "string" && typeof item.text === "string") : []);
@@ -252,10 +247,12 @@ export default function Home() {
     setAnswers((current) => {
       const previous = current[id] ?? { score: 0, note: zeroScoreComment(id) };
       const score = typeof patch.score === "number" ? patch.score : previous.score;
-      const note = typeof patch.note === "string" ? patch.note : score === 0 ? previous.score === 0 ? previous.note || zeroScoreComment(id) : zeroScoreComment(id) : previous.score === 0 && score > 0 ? "" : previous.note;
-      return { ...current, [id]: { ...previous, ...patch, score, note } };
+      const noEvidence = typeof patch.noEvidence === "boolean" ? patch.noEvidence : previous.noEvidence === true;
+      const regenerate = typeof patch.score === "number" || typeof patch.noEvidence === "boolean";
+      const note = typeof patch.note === "string" ? patch.note : regenerate ? automaticComment(id, score, noEvidence) : previous.note;
+      return { ...current, [id]: { ...previous, ...patch, score, noEvidence, note } };
     });
-    if (typeof patch.score === "number") setIsgAnswers((current) => ({ ...current, [id]: { ...current[id], score: Math.max(patch.score!, current[id]?.score ?? 0) } }));
+    if (typeof patch.score === "number") setIsgAnswers((current) => { const previous = current[id] ?? { score: patch.score!, note: "" }; const score = Math.max(patch.score!, previous.score); return { ...current, [id]: { ...previous, score, note: score !== previous.score ? automaticComment(id, score, previous.noEvidence === true) : previous.note } }; });
     setGuardianReviewedIds((current) => current.filter((questionId) => questionId !== id));
     setResultsUnlocked(false);
     setExcludedFindingIds((current) => current.filter((findingId) => findingId !== id));
@@ -263,18 +260,18 @@ export default function Home() {
   };
   const updateIsgAnswer = (id: string, patch: Partial<AnswerState[string]>) => {
     const minimum = answers[id]?.score ?? 0;
-    const normalizedPatch = typeof patch.score === "number" ? { ...patch, score: Math.max(minimum, patch.score) } : patch;
-    setIsgAnswers((current) => ({ ...current, [id]: { ...current[id], ...normalizedPatch } }));
+    setIsgAnswers((current) => { const previous = current[id] ?? { score: minimum, note: automaticComment(id, minimum) }; const score = typeof patch.score === "number" ? Math.max(minimum, patch.score) : previous.score; const noEvidence = typeof patch.noEvidence === "boolean" ? patch.noEvidence : previous.noEvidence === true; const regenerate = typeof patch.score === "number" || typeof patch.noEvidence === "boolean"; const note = typeof patch.note === "string" ? patch.note : regenerate ? automaticComment(id, score, noEvidence) : previous.note; return { ...current, [id]: { ...previous, ...patch, score, noEvidence, note } }; });
     setGuardianReviewedIds((current) => current.includes(id) ? current : [...current, id]);
     setResultsUnlocked(false);
     setSaved(false);
   };
   const confirmGuardianAnswer = (id: string) => { setGuardianReviewedIds((current) => current.includes(id) ? current : [...current, id]); setResultsUnlocked(false); setSaved(false); };
   const startGuardianEnvironment = () => {
-    setIsgAnswers((current) => Object.fromEntries(pillars.flatMap((pillar) => pillar.questions.map((question) => [question.id, { score: Math.max(answers[question.id]?.score ?? 0, current[question.id]?.score ?? 0), note: current[question.id]?.note ?? "" }]))));
+    setIsgAnswers((current) => Object.fromEntries(pillars.flatMap((pillar) => pillar.questions.map((question) => { const score = Math.max(answers[question.id]?.score ?? 0, current[question.id]?.score ?? 0); const previous = current[question.id]; return [question.id, { score, noEvidence: previous?.noEvidence === true, note: previous?.note?.trim() ? previous.note : automaticComment(question.id, score, previous?.noEvidence === true) }]; }))));
     setGuardianStarted(true);
     setResultsUnlocked(false);
     setIsgActivePillar(0);
+    setGuardianUnlockedPillar(0);
     setView("isg");
     setSaved(false);
   };
@@ -286,21 +283,33 @@ export default function Home() {
     setSaved(false);
   };
 
-  const goToCurrentPending = () => {
-    const pendingId = questionIds.find((id) => !answers[id]?.note.trim());
-    if (!pendingId) return;
-    const pillarIndex = pillars.findIndex((pillar) => pillar.questions.some((question) => question.id === pendingId));
+  const continueCurrentPillar = () => {
+    if (activePillar >= pillars.length - 1) { startGuardianEnvironment(); return; }
+    const next = activePillar + 1;
+    setCurrentUnlockedPillar((current) => Math.max(current, next));
+    setActivePillar(next);
     setSupplementaryView(null);
-    setActivePillar(Math.max(0, pillarIndex));
-    window.setTimeout(() => document.getElementById(`question-${pendingId}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+    window.scrollTo(0, 0);
+    setSaved(false);
   };
 
-  const goToGuardianPending = () => {
-    const pendingId = questionIds.find((id) => !guardianCompletedIds.includes(id));
-    if (!pendingId) return;
-    const pillarIndex = pillars.findIndex((pillar) => pillar.questions.some((question) => question.id === pendingId));
-    setIsgActivePillar(Math.max(0, pillarIndex));
-    window.setTimeout(() => document.getElementById(`question-${pendingId}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+  const continueGuardianPillar = () => {
+    if (isgActivePillar >= pillars.length - 1) { unlockResults(); return; }
+    const next = isgActivePillar + 1;
+    setGuardianUnlockedPillar((current) => Math.max(current, next));
+    setIsgActivePillar(next);
+    window.scrollTo(0, 0);
+    setSaved(false);
+  };
+
+  const goToCurrentPillarPending = () => {
+    const pendingId = currentPillarQuestionIds.find((id) => !answers[id]?.note.trim());
+    if (pendingId) document.getElementById(`question-${pendingId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const goToGuardianPillarPending = () => {
+    const pendingId = guardianPillarQuestionIds.find((id) => !guardianCompletedIds.includes(id));
+    if (pendingId) document.getElementById(`question-${pendingId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
   const deleteFinding = (id: string) => {
@@ -365,7 +374,7 @@ export default function Home() {
       const safeClient = client.replace(/[^a-z0-9]+/gi, "-");
       const download = (content: Blob, filename: string) => { const url = URL.createObjectURL(content); const anchor = document.createElement("a"); anchor.href = url; anchor.download = filename; document.body.appendChild(anchor); anchor.click(); anchor.remove(); window.setTimeout(() => URL.revokeObjectURL(url), 1000); };
       download(blob, `XTR-Assessment-${safeClient}.pptx`);
-      const assessmentFile: AssessmentFile = { schemaVersion: 3, assessmentId, client, specialist, exportedAt: new Date().toISOString(), answers, isgAnswers, guardianReviewedIds, guardianStarted, resultsUnlocked, software: software.map((entry) => ({ id: entry.id, server: entry.server, site: entry.site, version: entry.version, checkedAt: entry.checkedAt, identifiedProduct: entry.identifiedProduct, checking: false })), vulnerabilities, observations, excludedFindingIds };
+      const assessmentFile: AssessmentFile = { schemaVersion: 3, assessmentId, client, specialist, exportedAt: new Date().toISOString(), answers, isgAnswers, guardianReviewedIds, guardianStarted, resultsUnlocked, currentUnlockedPillar, guardianUnlockedPillar, software: software.map((entry) => ({ id: entry.id, server: entry.server, site: entry.site, version: entry.version, checkedAt: entry.checkedAt, identifiedProduct: entry.identifiedProduct, checking: false })), vulnerabilities, observations, excludedFindingIds };
       download(new Blob([JSON.stringify(assessmentFile, null, 2)], { type: "application/json" }), `XTR-Assessment-${safeClient}.json`);
     } finally { setExporting(false); }
   };
@@ -427,10 +436,10 @@ export default function Home() {
           <div className="page questionnaire-page">
             <JourneyStatus step={1} current={currentCommentCount} total={questionIds.length} complete={currentComplete} />
             <div className="page-title"><div><span className="eyebrow">ETAPA 1 · DIAGNÓSTICO</span><h1>Ambiente Atual</h1><p>Avalie cada controle e registre obrigatoriamente a evidência observada.</p></div><div className="progress-ring">{totalScore}<small>/100</small></div></div>
-            <div className="pillar-tabs" role="tablist">{pillars.map((pillar, index) => <button key={pillar.id} className={activePillar === index && supplementaryView === null ? "active" : ""} onClick={() => { setActivePillar(index); setSupplementaryView(null); }} style={{ "--pillar": pillar.color } as React.CSSProperties}><span>{pillar.icon}</span><div><small>PILAR {index + 1}</small><b>{pillar.name}</b></div><em>{pillarScores[index]}/20</em></button>)}</div>
+            <div className="pillar-tabs" role="tablist">{pillars.map((pillar, index) => <button key={pillar.id} disabled={index > currentUnlockedPillar} title={index > currentUnlockedPillar ? "Conclua o pilar anterior para desbloquear" : undefined} className={activePillar === index && supplementaryView === null ? "active" : ""} onClick={() => { setActivePillar(index); setSupplementaryView(null); }} style={{ "--pillar": pillar.color } as React.CSSProperties}><span>{pillar.icon}</span><div><small>PILAR {index + 1}</small><b>{pillar.name}</b></div><em>{index > currentUnlockedPillar ? "🔒" : `${pillarScores[index]}/20`}</em></button>)}</div>
             <section className="supplementary-navigation"><div><span className="eyebrow">DADOS COMPLEMENTARES</span><p>Inventário e registros livres ficam separados da avaliação dos cinco pilares.</p></div><button className={supplementaryView === "inventory" ? "active" : ""} onClick={() => setSupplementaryView(supplementaryView === "inventory" ? null : "inventory")}><span>▣</span><b>Inventário</b><em>{software.length}</em></button><button className={supplementaryView === "observations" ? "active" : ""} onClick={() => setSupplementaryView(supplementaryView === "observations" ? null : "observations")}><span>✎</span><b>Registro Livre</b><em>{observations.length}</em></button></section>
             {supplementaryView === "inventory" ? <SoftwareVersions entries={software} vulnerabilities={vulnerabilities} update={updateSoftware} add={addSoftware} remove={removeSoftware} check={checkVulnerabilities} /> : supplementaryView === "observations" ? <Observations observations={observations} add={addObservation} update={updateObservation} remove={deleteObservation} /> : <QuestionList mode="current" pillar={pillars[activePillar]} answers={answers} updateAnswer={updateAnswer} openReference={setActiveReference} />}
-            <JourneyFooter complete={currentComplete} incompleteMessage={`Preencha os ${questionIds.length - currentCommentCount} comentário(s) obrigatório(s) restantes para avançar.`} actionLabel="Continuar para Ambiente Data Guardians" onContinue={startGuardianEnvironment} onPending={goToCurrentPending} />
+            <JourneyFooter complete={currentPillarComplete} incompleteMessage={`Preencha os ${currentPillarPendingCount} comentário(s) obrigatório(s) deste pilar para avançar.`} actionLabel={activePillar < pillars.length - 1 ? `Continuar para Pilar ${activePillar + 2}` : "Continuar para Ambiente Data Guardians"} onContinue={continueCurrentPillar} onPending={goToCurrentPillarPending} />
           </div>
         )}
 
@@ -438,9 +447,9 @@ export default function Home() {
           <div className="page questionnaire-page isg-page">
             <JourneyStatus step={2} current={guardianReviewedCount} total={questionIds.length} complete={guardianComplete} />
             <div className="page-title"><div><span className="eyebrow">ETAPA 2 · JORNADA DE EVOLUÇÃO</span><h1>Ambiente Data Guardians</h1><p>Revise cada controle. A pontuação parte do ambiente atual e pode apenas permanecer ou aumentar.</p></div><div className="projection-score"><span>ATUAL <b>{totalScore}/100</b></span><strong>{isgTotalScore}<small>/100</small></strong><em>+{Math.max(0, isgTotalScore - totalScore)} pontos</em></div></div>
-            <div className="pillar-tabs isg-tabs" role="tablist">{pillars.map((pillar, index) => <button key={pillar.id} className={isgActivePillar === index ? "active" : ""} onClick={() => setIsgActivePillar(index)} style={{ "--pillar": pillar.color } as React.CSSProperties}><span>{pillar.icon}</span><div><small>PILAR {index + 1}</small><b>{pillar.name}</b></div><em>{isgPillarScores[index]}/20</em></button>)}</div>
+            <div className="pillar-tabs isg-tabs" role="tablist">{pillars.map((pillar, index) => <button key={pillar.id} disabled={index > guardianUnlockedPillar} title={index > guardianUnlockedPillar ? "Conclua o pilar anterior para desbloquear" : undefined} className={isgActivePillar === index ? "active" : ""} onClick={() => setIsgActivePillar(index)} style={{ "--pillar": pillar.color } as React.CSSProperties}><span>{pillar.icon}</span><div><small>PILAR {index + 1}</small><b>{pillar.name}</b></div><em>{index > guardianUnlockedPillar ? "🔒" : `${isgPillarScores[index]}/20`}</em></button>)}</div>
             <QuestionList mode="guardians" pillar={pillars[isgActivePillar]} answers={isgAnswers} updateAnswer={updateIsgAnswer} referenceAnswers={answers} reviewedIds={guardianCompletedIds} confirmAnswer={confirmGuardianAnswer} openReference={setActiveReference} />
-            <JourneyFooter complete={guardianComplete} incompleteMessage={`Adicione comentário nos ${questionIds.length - guardianReviewedCount} item(ns) alterado(s) restantes para liberar os resultados.`} actionLabel="Ver Resultados" onContinue={unlockResults} onPending={goToGuardianPending} />
+            <JourneyFooter complete={guardianPillarComplete} incompleteMessage={`Revise os ${guardianPillarPendingCount} item(ns) restante(s) deste pilar para avançar.`} actionLabel={isgActivePillar < pillars.length - 1 ? `Continuar para Pilar ${isgActivePillar + 2}` : "Ver Resultados"} onContinue={continueGuardianPillar} onPending={goToGuardianPillarPending} />
           </div>
         )}
 
@@ -474,7 +483,7 @@ function ReferenceModal({ reference, close }: { reference: ReferenceEntry; close
 }
 
 function QuestionList({ mode, pillar, answers, updateAnswer, referenceAnswers, reviewedIds = [], confirmAnswer, openReference }: { mode: "current" | "guardians"; pillar: Pillar; answers: AnswerState; updateAnswer: (id: string, patch: Partial<AnswerState[string]>) => void; referenceAnswers?: AnswerState; reviewedIds?: string[]; confirmAnswer?: (id: string) => void; openReference: (reference: ReferenceEntry) => void }) {
-  return <section className="question-list"><div className="question-intro"><span style={{ color: pillar.color }}>{pillar.icon}</span><div><small>{pillar.name.toUpperCase()}</small><h2>{pillar.description}</h2></div><strong>{pillar.questions.reduce((sum, q) => sum + answers[q.id].score, 0)}<small>/20</small></strong></div>{pillar.questions.map((q, index) => { const reference = referenceAnswers?.[q.id]; const unchanged = mode === "guardians" && answers[q.id].score === (reference?.score ?? 0); const missingGuardianComment = mode === "guardians" && !unchanged && !answers[q.id].note.trim(); const reviewed = unchanged || reviewedIds.includes(q.id) && !missingGuardianComment; const missingComment = mode === "current" && !answers[q.id].note.trim(); return <article id={`question-${q.id}`} className={`question-card ${missingComment || missingGuardianComment ? "missing-comment" : ""} ${reviewed ? "reviewed" : ""}`} key={q.id}><div className="question-number">{String(index + 1).padStart(2, "0")}</div><div className="question-main"><div className="question-heading"><h3>{q.title}</h3>{mode === "current" && <em className={missingComment ? "required-badge" : "completed-badge"}>{missingComment ? "Comentário obrigatório" : "Comentário preenchido"}</em>}{mode === "guardians" && <em className={reviewed ? "completed-badge" : "required-badge"}>{unchanged ? "Sem alteração" : missingGuardianComment ? "Comentário obrigatório" : reviewed ? "Alteração registrada" : "Revisão pendente"}</em>}</div><p>{q.risk}</p><ReferenceTags codes={[q.iso, q.nist, q.lgpd]} openReference={openReference} />{mode === "guardians" && <div className="reference-comment"><b>REFERÊNCIA DO AMBIENTE ATUAL</b><span>{reference?.note || "Comentário não informado."}</span></div>}<textarea required={mode === "current" || missingGuardianComment} className={mode === "current" && answers[q.id].score === 0 ? "standard-comment" : ""} aria-label={`${mode === "current" ? "Comentário" : "Observação Data Guardians"} para ${q.title}`} placeholder={mode === "current" ? "Descreva obrigatoriamente a evidência observada..." : unchanged ? "Observação opcional quando a nota não for alterada." : "Descreva obrigatoriamente a melhoria aplicada no Ambiente Data Guardians..."} value={answers[q.id].note} onChange={(e) => updateAnswer(q.id, { note: e.target.value })} /></div><div className="score-selector"><label>{mode === "current" ? "PONTUAÇÃO ATUAL" : "PONTUAÇÃO DATA GUARDIANS"}</label><strong style={{ color: answers[q.id].score === q.max ? "var(--success)" : answers[q.id].score === 0 ? "var(--danger)" : "var(--warning)" }}>{answers[q.id].score}<small>/{q.max}</small></strong>{mode === "guardians" && <div className="guardian-score-lock"><span>🔒 Nota mínima bloqueada</span><b>{reference?.score ?? 0}/{q.max}</b></div>}<input type="range" min={0} max={q.max} value={answers[q.id].score} onChange={(e) => updateAnswer(q.id, { score: mode === "guardians" ? Math.max(reference?.score ?? 0, Number(e.target.value)) : Number(e.target.value) })} style={{ "--value": `${(answers[q.id].score / q.max) * 100}%` } as React.CSSProperties} /><div><span>{mode === "guardians" ? `Piso: ${reference?.score ?? 0}` : "Não atende"}</span><span>Atende</span></div>{mode === "guardians" && !unchanged && !missingGuardianComment && <button className={reviewed ? "review-confirmed" : "review-button"} onClick={() => confirmAnswer?.(q.id)}>{reviewed ? "✓ Alteração registrada" : "Confirmar alteração"}</button>}</div></article>; })}</section>;
+  return <section className="question-list"><div className="question-intro"><span style={{ color: pillar.color }}>{pillar.icon}</span><div><small>{pillar.name.toUpperCase()}</small><h2>{pillar.description}</h2></div><strong>{pillar.questions.reduce((sum, q) => sum + answers[q.id].score, 0)}<small>/20</small></strong></div>{pillar.questions.map((q, index) => { const answer = answers[q.id]; const reference = referenceAnswers?.[q.id]; const unchanged = mode === "guardians" && answer.score === (reference?.score ?? 0); const missingGuardianComment = mode === "guardians" && !unchanged && !answer.note.trim(); const reviewed = unchanged || reviewedIds.includes(q.id) && !missingGuardianComment; const missingComment = mode === "current" && !answer.note.trim(); return <article id={`question-${q.id}`} className={`question-card ${missingComment || missingGuardianComment ? "missing-comment" : ""} ${reviewed ? "reviewed" : ""}`} key={q.id}><div className="question-number">{String(index + 1).padStart(2, "0")}</div><div className="question-main"><div className="question-heading"><h3>{q.title}</h3>{mode === "current" && missingComment && <em className="required-badge">Comentário obrigatório</em>}{mode === "guardians" && <em className={reviewed ? "completed-badge" : "required-badge"}>{unchanged ? "Sem alteração" : missingGuardianComment ? "Comentário obrigatório" : reviewed ? "Alteração registrada" : "Revisão pendente"}</em>}</div><p>{q.risk}</p><div className="question-tools"><ReferenceTags codes={[q.iso, q.nist, q.lgpd]} openReference={openReference} />{mode === "current" && <button type="button" className={`no-evidence-toggle ${answer.noEvidence ? "active" : ""}`} aria-pressed={answer.noEvidence === true} onClick={() => updateAnswer(q.id, { noEvidence: !answer.noEvidence })}>{answer.noEvidence ? "✓ Sem evidência" : "Sem evidência"}</button>}</div>{mode === "guardians" && <div className="reference-comment"><b>REFERÊNCIA DO AMBIENTE ATUAL</b><span>{reference?.note || "Comentário não informado."}</span></div>}<textarea required={mode === "current" || missingGuardianComment} className={answer.score === 0 ? "standard-comment" : ""} aria-label={`${mode === "current" ? "Comentário" : "Observação Data Guardians"} para ${q.title}`} placeholder={mode === "current" ? "Descreva obrigatoriamente a condição observada..." : unchanged ? "Observação opcional quando a nota não for alterada." : "Descreva a melhoria aplicada no Ambiente Data Guardians..."} value={answer.note} onChange={(e) => updateAnswer(q.id, { note: e.target.value })} /></div><div className="score-selector"><label>{mode === "current" ? "PONTUAÇÃO ATUAL" : "PONTUAÇÃO DATA GUARDIANS"}</label><strong style={{ color: answer.score === q.max ? "var(--success)" : answer.score === 0 ? "var(--danger)" : "var(--warning)" }}>{answer.score}<small>/{q.max}</small></strong>{mode === "guardians" && <div className="guardian-score-lock"><span>🔒 Nota Ambiente Atual</span><b>{reference?.score ?? 0}/{q.max}</b></div>}<input type="range" min={0} max={q.max} value={answer.score} onChange={(e) => updateAnswer(q.id, { score: mode === "guardians" ? Math.max(reference?.score ?? 0, Number(e.target.value)) : Number(e.target.value) })} style={{ "--value": `${(answer.score / q.max) * 100}%` } as React.CSSProperties} /><div><span>Não atende</span><span>Atende</span></div>{mode === "guardians" && !unchanged && !missingGuardianComment && <button className={reviewed ? "review-confirmed" : "review-button"} onClick={() => confirmAnswer?.(q.id)}>{reviewed ? "✓ Alteração registrada" : "Confirmar alteração"}</button>}</div></article>; })}</section>;
 }
 
 function ComparisonView({ currentAnswers, guardianAnswers, currentScore, guardianScore }: { currentAnswers: AnswerState; guardianAnswers: AnswerState; currentScore: number; guardianScore: number }) {
