@@ -108,17 +108,17 @@ function addTableHeader(slide: pptxgen.Slide, page: number, pages: number) {
   columns.forEach((column, index) => {
     slide.addShape("rect", { x: column.x, y: 2.25, w: column.w, h: .52, fill: { color: T.header }, line: { color: T.line, width: .7 } });
     const label = index === 2 && pages > 1 ? `${column.label}  ·  ${page + 1}/${pages}` : column.label;
-    slide.addText(label, { x: column.x + .08, y: 2.38, w: column.w - .16, h: .24, fontFace: "Arial", fontSize: 7.5, bold: true, color: T.white, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
+    slide.addText(label, { x: column.x + .08, y: 2.38, w: column.w - .16, h: .24, fontFace: "Raleway", fontSize: 7.5, bold: true, color: T.white, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
   });
 }
 
 function addRow(slide: pptxgen.Slide, row: IsoExposure, number: number, y: number, h: number) {
   columns.forEach((column) => slide.addShape("rect", { x: column.x, y, w: column.w, h, fill: { color: T.panel, transparency: 2 }, line: { color: T.line, width: .55 } }));
   slide.addShape("ellipse", { x: .68, y: y + h / 2 - .19, w: .38, h: .38, fill: { color: T.panel }, line: { color: T.white, width: 1 } });
-  slide.addText(String(number), { x: .68, y: y + h / 2 - .06, w: .38, h: .12, fontFace: "Arial", fontSize: 7.7, bold: true, color: T.white, align: "center", margin: 0 });
-  slide.addText(row.gap, { x: 1.18, y: y + .16, w: 2.48, h: h - .3, fontFace: "Arial", fontSize: 7.1, bold: true, color: T.white, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
-  slide.addText(row.controls, { x: 4.08, y: y + .16, w: 1.86, h: h - .3, fontFace: "Arial", fontSize: 8.5, bold: true, color: T.white, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
-  slide.addText(row.exposure, { x: 6.38, y: y + .16, w: 6.26, h: h - .3, fontFace: "Arial", fontSize: 7.2, bold: true, color: T.muted, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
+  slide.addText(String(number), { x: .68, y: y + h / 2 - .06, w: .38, h: .12, fontFace: "Raleway", fontSize: 7.7, bold: true, color: T.white, align: "center", margin: 0 });
+  slide.addText(row.gap, { x: 1.18, y: y + .16, w: 2.48, h: h - .3, fontFace: "Raleway", fontSize: 7.1, bold: true, color: T.white, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
+  slide.addText(row.controls, { x: 4.08, y: y + .16, w: 1.86, h: h - .3, fontFace: "Raleway", fontSize: 8.5, bold: true, color: T.white, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
+  slide.addText(row.exposure, { x: 6.38, y: y + .16, w: 6.26, h: h - .3, fontFace: "Raleway", fontSize: 7.2, bold: true, color: T.muted, valign: "mid", margin: 0, breakLine: false, fit: "shrink" });
 }
 
 export function addIsoExposureSlides(pptx: pptxgen, answers: Answers, vulnerabilities: VulnerabilityForExport[], background: string, excludedFindingIds: string[] = [], observations: AssessmentObservation[] = []) {
@@ -132,6 +132,6 @@ export function addIsoExposureSlides(pptx: pptxgen, answers: Answers, vulnerabil
     addTableHeader(slide, pageIndex, pages.length);
     const rowHeight = 4.24 / pageRows.length;
     pageRows.forEach((row, index) => addRow(slide, row, pageIndex * pageSize + index + 1, 2.77 + index * rowHeight, rowHeight));
-    slide.addText("Referência de controle: ISO/IEC 27001:2022, Anexo A, com orientação da ISO/IEC 27002:2022. Resultado indicativo; não constitui auditoria formal de certificação.", { x: .52, y: 7.13, w: 12.26, h: .12, fontFace: "Arial", fontSize: 5.6, color: "858B9B", margin: 0, align: "right", breakLine: false, fit: "shrink" });
+    slide.addText("Referência de controle: ISO/IEC 27001:2022, Anexo A, com orientação da ISO/IEC 27002:2022. Resultado indicativo; não constitui auditoria formal de certificação.", { x: .52, y: 7.13, w: 12.26, h: .12, fontFace: "Raleway", fontSize: 5.6, color: "858B9B", margin: 0, align: "right", breakLine: false, fit: "shrink" });
   });
 }

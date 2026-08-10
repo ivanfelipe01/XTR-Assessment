@@ -1,0 +1,223 @@
+/* Consistent, medium-sized type scale for the application UI. */
+:root {
+  --type-caption: 11px;
+  --type-small: 12px;
+  --type-body: 14px;
+  --type-subtitle: 17px;
+  --type-section: 19px;
+  --type-title: 30px;
+}
+
+html,
+body {
+  font-size: var(--type-body);
+  line-height: 1.5;
+}
+
+button,
+input,
+textarea,
+select {
+  font-size: var(--type-body);
+}
+
+.eyebrow,
+.topbar p,
+.save-state,
+.page-title label,
+.assessment-identification label,
+.score-copy > span,
+.section-head span,
+.score-orbit small,
+.question-intro small,
+.score-selector label,
+.table-head,
+.observation-head span,
+.software-card label {
+  font-size: var(--type-caption);
+}
+
+.primary,
+.ghost,
+.full-link,
+.section-head button,
+.score-detail-link,
+.delete-finding,
+.delete-cve,
+.observation-head button,
+.remove-button {
+  font-size: var(--type-small);
+}
+
+h1,
+.page-title h1 {
+  font-size: var(--type-title);
+  line-height: 1.15;
+}
+
+.page-title p,
+.score-copy p,
+.welcome-panel > p,
+.assessment-modal > p,
+.software-intro p,
+.observations-empty p,
+.vulnerability-risk p,
+.finding-evidence {
+  font-size: var(--type-body);
+  line-height: 1.55;
+}
+
+.section-head h3,
+.software-intro h2 {
+  font-size: var(--type-section);
+  line-height: 1.25;
+}
+
+.question-intro h2,
+.question-main h3 {
+  font-size: var(--type-subtitle);
+  line-height: 1.35;
+}
+
+.question-number,
+.question-main p,
+.framework-tags span,
+.score-selector div,
+.radar-legend span,
+.scale span,
+.pillar-copy small,
+.frameworks span,
+.frameworks small,
+.pillar-tabs small,
+.pillar-tabs em,
+.progress-ring small,
+.table-row small,
+.table-row code,
+.table-row em,
+.stat-pill span,
+.vulnerability-identity span,
+.vulnerability-row > small,
+.vulnerability-row > em,
+.vulnerability-risk b,
+.observation-cross span,
+.observation-cross b,
+.software-status,
+.software-error,
+.nvd-note,
+.projection-score > span,
+.projection-score > em,
+.isg-gain,
+.radar-key span {
+  font-size: var(--type-caption) !important;
+}
+
+.question-main textarea,
+.observation-card textarea,
+.assessment-modal input,
+.assessment-modal select,
+.page-title input,
+.page-title select,
+.software-card input {
+  font-size: var(--type-body);
+  line-height: 1.5;
+}
+
+.assessment-modal select,
+.page-title select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #05070d;
+  color: #fff;
+  padding: 12px 36px 12px 13px;
+  outline: none;
+}
+
+.assessment-modal select:focus,
+.page-title select:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(29, 219, 224, .08);
+}
+
+.pillar-copy b,
+.frameworks b,
+.pillar-tabs b,
+.table-row b,
+.vulnerability-identity a,
+.vulnerability-risk strong,
+.observations-empty b,
+.welcome-option small {
+  font-size: var(--type-small);
+  line-height: 1.4;
+}
+
+.welcome-option b {
+  font-size: var(--type-subtitle);
+}
+
+.score-copy h2 {
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.score-selector strong,
+.question-intro > strong {
+  font-size: 28px;
+}
+
+.score-selector strong small,
+.question-intro > strong small,
+.projection-score > strong small {
+  font-size: var(--type-small);
+}
+
+.framework-tags {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.framework-tags span {
+  padding: 4px 9px;
+}
+
+.question-card {
+  grid-template-columns: 42px minmax(0, 1fr) 210px;
+  gap: 22px;
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+.question-main h3 {
+  margin-bottom: 7px;
+  font-weight: 600;
+}
+
+.question-main p {
+  margin-bottom: 12px;
+  line-height: 1.45;
+}
+
+.question-main textarea {
+  min-height: 76px;
+  height: 76px;
+  padding: 12px 13px;
+}
+
+.question-card:focus-within textarea,
+.question-card:hover textarea {
+  min-height: 76px;
+  height: 76px;
+  padding: 12px 13px;
+}
+
+@media (max-width: 760px) {
+  :root {
+    --type-title: 26px;
+  }
+
+  .question-card {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 16px;
+  }
+}
