@@ -7,7 +7,6 @@ import { mapObservation, observationFindingId, type AssessmentObservation } from
 import { referenceFor, type ReferenceEntry } from "./reference-catalog";
 
 type View = "overview" | "questionnaire" | "isg" | "findings" | "comparison";
-type Theme = "dark" | "light";
 type AnswerState = Record<string, { score: number; note: string; noEvidence?: boolean }>;
 type Vulnerability = { id: string; severity: string; score: number | null; description: string; risk: string; url: string; matchStatus: string; serverId: string; server: string; site: string; version: string; identifiedProduct?: string };
 type SoftwareEntry = { id: string; server: string; site: string; version: string; checking: boolean; checkedAt?: string; error?: string; identifiedProduct?: string };
@@ -112,17 +111,6 @@ export default function Home() {
   const [saved, setSaved] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [activeReference, setActiveReference] = useState<ReferenceEntry | null>(null);
-  const [theme, setTheme] = useState<Theme>("dark");
-
-  useEffect(() => {
-    const storedTheme = window.localStorage.getItem("xtr-theme");
-    if (storedTheme === "light" || storedTheme === "dark") setTheme(storedTheme);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    window.localStorage.setItem("xtr-theme", theme);
-  }, [theme]);
 
   const pillarScores = useMemo(
     () => pillars.map((pillar) => pillar.questions.reduce((sum, q) => sum + (answers[q.id]?.score ?? 0), 0)),
@@ -355,7 +343,6 @@ export default function Home() {
   if (!assessmentStarted) return (
     <main className="welcome-screen">
       <section className="welcome-panel">
-        <button className="theme-toggle welcome-theme-toggle" type="button" onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")} aria-label={`Ativar tema ${theme === "dark" ? "claro" : "escuro"}`}><span>{theme === "dark" ? "☾" : "☀"}</span><b>{theme === "dark" ? "Escuro" : "Claro"}</b><i><em /></i></button>
         <img className="welcome-logo" src="/xtr-assessment-logo.png" alt="XTR Assessment" />
         <span className="eyebrow">MATURIDADE EM RESILIÊNCIA DE DADOS</span>
         <h1>Inicie ou retome um Assessment</h1>
@@ -390,7 +377,7 @@ export default function Home() {
       <section className="workspace">
         <header className="topbar">
           <div className="topbar-brand"><img src="/xtr-assessment-logo.png" alt="" /><p>XTR ASSESSMENT <span>/</span> {view === "overview" ? "VISÃO GERAL" : view === "questionnaire" ? "AMBIENTE ATUAL" : view === "isg" ? "AMBIENTE DATA GUARDIANS" : view === "comparison" ? "COMPARATIVO" : "RISCOS"}</p></div>
-          <div className="top-actions"><span className="internal-use"><i />Uso interno</span><button className="theme-toggle" type="button" onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")} aria-label={`Ativar tema ${theme === "dark" ? "claro" : "escuro"}`}><span>{theme === "dark" ? "☾" : "☀"}</span><b>{theme === "dark" ? "Escuro" : "Claro"}</b><i><em /></i></button><span className="report-action" data-tooltip={guidedMode && (!guardianComplete || !resultsUnlocked) ? "O relatório será liberado após concluir o Ambiente Data Guardians e clicar em Ver Resultados." : undefined}><button className="primary" onClick={exportDeck} disabled={exporting || (guidedMode && (!guardianComplete || !resultsUnlocked))}>{exporting ? "Gerando..." : "Gerar Relatório"}</button></span></div>
+          <div className="top-actions"><span className="internal-use"><i />Uso interno</span><span className="report-action" data-tooltip={guidedMode && (!guardianComplete || !resultsUnlocked) ? "O relatório será liberado após concluir o Ambiente Data Guardians e clicar em Ver Resultados." : undefined}><button className="primary" onClick={exportDeck} disabled={exporting || (guidedMode && (!guardianComplete || !resultsUnlocked))}>{exporting ? "Gerando..." : "Gerar Relatório"}</button></span></div>
         </header>
 
         {view === "overview" && (
